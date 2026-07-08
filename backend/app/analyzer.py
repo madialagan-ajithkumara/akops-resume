@@ -18,14 +18,31 @@ from .skills_data import (
 _MASTER_SKILLS = master_skill_list()
 
 
+# Skills whose plain-text match is ambiguous with an unrelated, more common
+# term. If any of the "unless near" phrases appear close by, skip the match
+# -- e.g. "Cisco IOS" (a switch/router OS) getting misread as the "ios"
+# (Apple mobile) skill.
+_AMBIGUOUS_SKILL_GUARDS = {
+    "ios": ["cisco ios", "cisco", "catalyst"],
+}
+
+
 def _find_skills(text: str, vocabulary: list[str]) -> list[str]:
     """Case-insensitive whole-word/phrase matching against a skill vocabulary."""
     lowered = text.lower()
     found = []
     for skill in vocabulary:
-        pattern = r"(?<![a-z0-9])" + re.escape(skill.lower()) + r"(?![a-z0-9])"
-        if re.search(pattern, lowered):
-            found.append(skill)
+        skill_lower = skill.lower()
+        pattern = r"(?<![a-z0-9])" + re.escape(skill_lower) + r"(?![a-z0-9])"
+        match = re.search(pattern, lowered)
+        if not match:
+            continue
+        guards = _AMBIGUOUS_SKILL_GUARDS.get(skill_lower)
+        if guards:
+            window = lowered[max(0, match.start() - 20):match.end() + 20]
+            if any(g in window for g in guards):
+                continue
+        found.append(skill)
     return found
 
 
@@ -108,8 +125,24 @@ def build_skills_to_learn(text: str, top_categories: list[str], detected_skills:
     return suggestions[:limit]
 
 
-def build_career_matches(text: str, k: int = 5) -> list[dict]:
-    predictions = career_classifier.predict_top_k(text, k=k)
+def build_career_matches(text: str, detected_skills: list[str] | None = None, k: int = 5) -> list[dict]:
+    """
+    Classify on the curated skill list, not the raw resume prose.
+
+    The classifier is trained on short skill-keyword strings (see
+    classifier.py's synthetic training docs), so at inference time it needs
+    input from the same distribution. Feeding it a full paragraph of natural
+    resume prose lets incidental words that coincidentally overlap with a
+    category's vocabulary (e.g. "RDS", "performance", "security") outvote the
+    resume's actual, dominant skill signal. Classifying on the already
+    skill-detected keywords keeps the signal clean and matches how the model
+    was trained.
+    """
+    if detected_skills is None:
+        detected_skills = detect_skills(text)
+    classify_input = " ".join(detected_skills) if detected_skills else text
+
+    predictions = career_classifier.predict_top_k(classify_input, k=k)
     total = sum(p for _, p in predictions) or 1.0
     return [
         {"title": category, "match_percent": round((prob / total) * 100)}
@@ -132,7 +165,7 @@ def build_summary(detected_skills: list[str], strengths: list[dict]) -> str:
 def analyze_resume(text: str) -> dict:
     detected_skills = detect_skills(text)
     strengths = build_strengths(detected_skills)
-    career_matches = build_career_matches(text)
+    career_matches = build_career_matches(text, detected_skills)
     top_categories = [c["title"] for c in career_matches]
     skills_to_learn = build_skills_to_learn(text, top_categories, detected_skills)
     score = compute_job_readiness_score(text, detected_skills)
