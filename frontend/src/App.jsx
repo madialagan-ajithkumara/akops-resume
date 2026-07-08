@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import ResumeBuilder from './ResumeBuilder'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -6,6 +6,12 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 function Badge() {
   return (
     <div className="topbar">
+      <a className="social-link" href="https://www.youtube.com/@AkOpsTamil" target="_blank" rel="noreferrer" aria-label="AKOps Tamil on YouTube" title="AKOps Tamil on YouTube">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.4 3.5 12 3.5 12 3.5s-7.4 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c2 .6 9.4.6 9.4.6s7.4 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4L15.8 12Z"/></svg>
+      </a>
+      <a className="social-link" href="https://www.linkedin.com/in/ajithkumara-madialagan-256625169/" target="_blank" rel="noreferrer" aria-label="Ajithkumara Madialagan on LinkedIn" title="Ajithkumara Madialagan on LinkedIn">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M20.45 20.45h-3.56v-5.58c0-1.33-.02-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.95v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.07 2.07 0 1 1 0-4.13 2.07 2.07 0 0 1 0 4.13ZM7.12 20.45H3.56V9h3.56v11.45Z"/></svg>
+      </a>
       <span className="badge">Powered by <b>AKOps</b></span>
     </div>
   )
@@ -24,12 +30,10 @@ function Hero() {
 }
 
 function Dropzone({ file, onChange }) {
-  const inputRef = useRef(null)
   return (
-    <label className="dropzone" onClick={() => inputRef.current?.click()}>
-      📎 {file ? 'Change PDF Resume' : 'Choose PDF Resume'}
+    <label className="dropzone">
+      <span className="dropzone-label">📎 {file ? 'Change PDF Resume' : 'Choose PDF Resume'}</span>
       <input
-        ref={inputRef}
         type="file"
         accept="application/pdf"
         onChange={(e) => onChange(e.target.files?.[0] || null)}

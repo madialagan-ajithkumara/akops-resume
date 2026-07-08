@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -81,7 +81,6 @@ export default function ResumeBuilder() {
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState('')
   const [error, setError] = useState('')
-  const inputRef = useRef(null)
 
   async function handleParse() {
     if (!file) return
@@ -194,9 +193,9 @@ export default function ResumeBuilder() {
   if (!resume) {
     return (
       <div className="card">
-        <label className="dropzone" onClick={() => inputRef.current?.click()}>
-          📎 {file ? 'Change PDF Resume' : 'Choose PDF Resume to Build/Edit'}
-          <input ref={inputRef} type="file" accept="application/pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+        <label className="dropzone">
+          <span className="dropzone-label">📎 {file ? 'Change PDF Resume' : 'Choose PDF Resume to Build/Edit'}</span>
+          <input type="file" accept="application/pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} />
           {file && <span className="filename">{file.name}</span>}
         </label>
         <button className="btn-primary" disabled={!file || loading} onClick={handleParse}>
