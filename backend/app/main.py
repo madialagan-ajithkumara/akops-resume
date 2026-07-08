@@ -1,11 +1,16 @@
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 
 from .pdf_utils import extract_text_from_pdf
 from .analyzer import analyze_resume
 from .matcher import match_resume_to_jd
+from .resume_parser import parse_resume
+from .schemas import ExportRequest
+from .export_pdf import build_resume_pdf
+from .export_docx import build_resume_docx
 
-app = FastAPI(title="AKOps Resume AI", version="1.0.0")
+app = FastAPI(title="AKOps Resume AI", version="1.1.0")
 
 # CORS: allow the frontend (any origin, since this is a free public tool with no auth)
 app.add_middleware(
@@ -46,3 +51,34 @@ async def match(resume: UploadFile = File(...), job_description: str = Form(...)
     base = analyze_resume(text)
     match_result = match_resume_to_jd(text, job_description)
     return {**base, **match_result}
+
+
+@app.post("/api/parse")
+async def parse(resume: UploadFile = File(...)):
+    """Parse an uploaded PDF into structured, editable resume-builder sections."""
+    text = _pdf_to_text(resume)
+    return parse_resume(text)
+
+
+@app.post("/api/export")
+async def export(payload: ExportRequest):
+    """Render the (possibly user-edited) structured resume as a downloadable PDF or DOCX."""
+    fmt = (payload.format or "pdf").lower()
+    filename_base = (payload.resume.contact.name or "resume").strip().replace(" ", "_") or "resume"
+
+    if fmt == "docx":
+        content = build_resume_docx(payload.resume)
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        filename = f"{filename_base}.docx"
+    elif fmt == "pdf":
+        content = build_resume_pdf(payload.resume)
+        media_type = "application/pdf"
+        filename = f"{filename_base}.pdf"
+    else:
+        raise HTTPException(status_code=400, detail="format must be 'pdf' or 'docx'")
+
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import ResumeBuilder from './ResumeBuilder'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -173,7 +174,7 @@ export default function App() {
       <Badge />
       <Hero />
 
-      {!result && (
+      {!result && mode !== 'builder' && (
         <>
           <div className="tabs">
             <button className={`tab ${mode === 'analysis' ? 'active' : ''}`} onClick={() => setMode('analysis')}>
@@ -181,6 +182,9 @@ export default function App() {
             </button>
             <button className={`tab ${mode === 'match' ? 'active' : ''}`} onClick={() => setMode('match')}>
               🎯 JD vs CV Match
+            </button>
+            <button className={`tab ${mode === 'builder' ? 'active' : ''}`} onClick={() => setMode('builder')}>
+              📝 Resume Builder
             </button>
           </div>
 
@@ -205,6 +209,23 @@ export default function App() {
 
             {error && <div className="error-box">{error}</div>}
           </div>
+        </>
+      )}
+
+      {mode === 'builder' && (
+        <>
+          <div className="tabs">
+            <button className={`tab ${mode === 'analysis' ? 'active' : ''}`} onClick={() => setMode('analysis')}>
+              📊 Resume Analysis
+            </button>
+            <button className={`tab ${mode === 'match' ? 'active' : ''}`} onClick={() => setMode('match')}>
+              🎯 JD vs CV Match
+            </button>
+            <button className={`tab active`} onClick={() => setMode('builder')}>
+              📝 Resume Builder
+            </button>
+          </div>
+          <ResumeBuilder />
         </>
       )}
 

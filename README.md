@@ -12,22 +12,36 @@ Free, self-hosted resume analysis and JD-vs-CV matching. **No paid AI/LLM API ca
 
 > Note: we originally intended to train the classifier on the public Kaggle "UpdatedResumeDataSet" (962 labeled resumes). The sandbox this was built in blocks bulk downloads from raw.githubusercontent.com, so the taxonomy above was hand-curated from well-known public skill sets for the same ~25 job categories instead. If you want to train on the real dataset, download `UpdatedResumeDataSet.csv` from Kaggle yourself and call `career_classifier.train_from_csv("path.csv")` in `backend/app/classifier.py` — no other code changes needed.
 
+## Resume Builder (new): parse, edit, export
+
+A third tab, **Resume Builder**, lets someone upload a CV and get it back as structured, editable sections instead of just a score:
+
+- Upload a PDF -> `backend/app/resume_parser.py` heuristically splits it into **Contact, Summary, Skills (grouped by category via the same taxonomy), Experience, Education, Projects, Certifications** -- no AI call, just regex/keyword section + entry detection.
+- The frontend (`frontend/src/ResumeBuilder.jsx`) renders every section as editable fields/lists: add or remove a skill, a bullet point, a whole job entry, a category, anything.
+- Resume parsing from plain PDF text is inherently imperfect (no bold/font cues survive extraction) -- the edit step is the safety net, not a nice-to-have.
+- **Download as PDF or Word**: `backend/app/export_pdf.py` (reportlab) and `export_docx.py` (python-docx) render the edited data into a clean, single-column, ATS-friendly resume template (accent-colored section headers, consistent spacing) -- good to actually send to employers.
+
 ## Project structure
 
 ```
 akops-resume-ai/
   backend/          FastAPI app (Python)
     app/
-      main.py        API routes: /api/analyze, /api/match, /api/health
+      main.py        API routes: /api/analyze, /api/match, /api/parse, /api/export, /api/health
       classifier.py   local TF-IDF + LogisticRegression career classifier
       analyzer.py     skill detection, scoring, summary, strengths
       matcher.py      JD vs CV cosine-similarity matching
+      resume_parser.py   heuristic CV -> structured sections parser
+      schemas.py      pydantic models for the editable resume JSON
+      export_pdf.py   structured resume -> polished PDF (reportlab)
+      export_docx.py  structured resume -> polished Word doc (python-docx)
       skills_data.py  open skill taxonomy (25 career tracks)
       pdf_utils.py    PDF text extraction
     requirements.txt
     render.yaml       one-click Render free-tier deploy config
   frontend/          React (Vite) app, same purple/dark AKOps theme
     src/App.jsx
+    src/ResumeBuilder.jsx   parse -> edit -> download UI
     src/index.css
     vercel.json
 ```
