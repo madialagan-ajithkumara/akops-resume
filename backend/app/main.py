@@ -12,6 +12,7 @@ from .export_docx import build_resume_docx
 from .classifier import career_classifier
 from .skills_data import CAREER_SKILLS
 from . import llm_enhance, chat_assist, gemini_client
+from .resume_gate import assess_resume_likelihood
 
 app = FastAPI(title="AKOps Resume AI", version="1.2.0")
 
@@ -31,6 +32,16 @@ def _pdf_to_text(upload: UploadFile) -> str:
     text = extract_text_from_pdf(data)
     if not text or len(text.split()) < 10:
         raise HTTPException(status_code=422, detail="Couldn't read text from that PDF. Try a text-based (not scanned/image) PDF.")
+
+    gate = assess_resume_likelihood(text)
+    if not gate["is_resume"]:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "This doesn't look like a resume/CV (" + "; ".join(gate["reasons"]) + "). "
+                "Please upload your resume as a PDF instead."
+            ),
+        )
     return text
 
 
