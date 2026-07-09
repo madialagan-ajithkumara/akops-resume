@@ -3,6 +3,16 @@ import ResumeBuilder from './ResumeBuilder'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+function BackgroundOrbs() {
+  return (
+    <>
+      <div className="bg-orb one" />
+      <div className="bg-orb two" />
+      <div className="bg-orb three" />
+    </>
+  )
+}
+
 function Badge() {
   return (
     <div className="topbar">
@@ -25,6 +35,39 @@ function Hero() {
         <div className="brand-title"><span className="grad">AKOps</span> Resume AI</div>
       </div>
       <div className="tagline">YOUR AI CAREER ASSISTANT</div>
+      <p className="hero-subtitle">
+        Get an instant, honest score on your resume, see exactly how well it matches any job
+        description, and rebuild it into a polished PDF or Word doc — all in under a minute.
+      </p>
+    </div>
+  )
+}
+
+function TrustBar() {
+  return (
+    <div className="trust-bar">
+      <span className="trust-chip">🔒 <b>Your CV is never stored</b></span>
+      <span className="trust-chip">⚡ <b>Instant local AI</b> — no wait</span>
+      <span className="trust-chip">💯 <b>100% free</b>, no sign-up</span>
+    </div>
+  )
+}
+
+function HowItWorks() {
+  const steps = [
+    { n: 1, title: 'Upload your resume', body: 'Drop in a PDF — nothing is saved on our servers.' },
+    { n: 2, title: 'Get instant AI insights', body: 'A local ML model scores it and finds your best-fit career matches.' },
+    { n: 3, title: 'Improve & download', body: 'Fix gaps, then export a polished, ATS-friendly PDF or Word doc.' },
+  ]
+  return (
+    <div className="how-it-works">
+      {steps.map((s) => (
+        <div className="how-step" key={s.n}>
+          <div className="num">{s.n}</div>
+          <h4>{s.title}</h4>
+          <p>{s.body}</p>
+        </div>
+      ))}
     </div>
   )
 }
@@ -47,8 +90,14 @@ function ScoreCard({ score }) {
   return (
     <div className="score-card">
       <div className="score-label">JOB READINESS SCORE</div>
-      <div className="score-number">{score}</div>
-      <div className="score-suffix">/100</div>
+      <div className="score-ring-wrap">
+        <div className="score-ring" style={{ '--pct': score }}>
+          <div className="score-ring-inner">
+            <div className="score-number">{score}</div>
+            <div className="score-suffix">/ 100</div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -165,8 +214,26 @@ function JdMatchCard({ matchPercent, matched, missing }) {
   )
 }
 
+function TabGroup({ mode, setMode }) {
+  return (
+    <div className="tabs">
+      <div className="tab-group">
+        <button className={`tab ${mode === 'analysis' ? 'active' : ''}`} onClick={() => setMode('analysis')}>
+          📊 Resume Analysis
+        </button>
+        <button className={`tab ${mode === 'match' ? 'active' : ''}`} onClick={() => setMode('match')}>
+          🎯 JD vs CV Match
+        </button>
+        <button className={`tab ${mode === 'builder' ? 'active' : ''}`} onClick={() => setMode('builder')}>
+          📝 Resume Builder
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
-  const [mode, setMode] = useState('analysis') // 'analysis' | 'match'
+  const [mode, setMode] = useState('analysis') // 'analysis' | 'match' | 'builder'
   const [file, setFile] = useState(null)
   const [jdText, setJdText] = useState('')
   const [loading, setLoading] = useState(false)
@@ -207,22 +274,20 @@ export default function App() {
 
   return (
     <div className="page">
+      <BackgroundOrbs />
       <Badge />
       <Hero />
 
+      {!result && (
+        <>
+          <TrustBar />
+          {mode !== 'builder' && <HowItWorks />}
+        </>
+      )}
+
       {!result && mode !== 'builder' && (
         <>
-          <div className="tabs">
-            <button className={`tab ${mode === 'analysis' ? 'active' : ''}`} onClick={() => setMode('analysis')}>
-              📊 Resume Analysis
-            </button>
-            <button className={`tab ${mode === 'match' ? 'active' : ''}`} onClick={() => setMode('match')}>
-              🎯 JD vs CV Match
-            </button>
-            <button className={`tab ${mode === 'builder' ? 'active' : ''}`} onClick={() => setMode('builder')}>
-              📝 Resume Builder
-            </button>
-          </div>
+          <TabGroup mode={mode} setMode={setMode} />
 
           <div className="card">
             <Dropzone file={file} onChange={setFile} />
@@ -255,17 +320,7 @@ export default function App() {
 
       {mode === 'builder' && (
         <>
-          <div className="tabs">
-            <button className={`tab ${mode === 'analysis' ? 'active' : ''}`} onClick={() => setMode('analysis')}>
-              📊 Resume Analysis
-            </button>
-            <button className={`tab ${mode === 'match' ? 'active' : ''}`} onClick={() => setMode('match')}>
-              🎯 JD vs CV Match
-            </button>
-            <button className={`tab active`} onClick={() => setMode('builder')}>
-              📝 Resume Builder
-            </button>
-          </div>
+          <TabGroup mode={mode} setMode={setMode} />
           <ResumeBuilder />
         </>
       )}
@@ -286,7 +341,14 @@ export default function App() {
         </>
       )}
 
-      <div className="footer">Built with ❤ by <b>AKOps</b> · free & open, no AI subscription needed</div>
+      <div className="footer">
+        <div className="footer-trust">
+          <span className="trust-chip">🔒 Privacy-first</span>
+          <span className="trust-chip">⚡ Zero AI token cost</span>
+          <span className="trust-chip">💯 Free forever</span>
+        </div>
+        Built with ❤ by <b>AKOps</b> · free & open, no AI subscription needed
+      </div>
     </div>
   )
 }
