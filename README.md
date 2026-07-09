@@ -35,8 +35,9 @@ akops-resume-ai/
       schemas.py      pydantic models for the editable resume JSON
       export_pdf.py   structured resume -> polished PDF (reportlab)
       export_docx.py  structured resume -> polished Word doc (python-docx)
-      skills_data.py  open skill taxonomy (25 career tracks)
+      skills_data.py  open skill taxonomy (25 career tracks) + skill alias/synonym map
       pdf_utils.py    PDF text extraction
+      llm_enhance.py  OPTIONAL: calls Gemini if GEMINI_API_KEY is set (see below); unused otherwise
     requirements.txt
     render.yaml       one-click Render free-tier deploy config
   frontend/          React (Vite) app, same purple/dark AKOps theme
@@ -82,4 +83,15 @@ Both plans are $0/month — no credit card required for either Render's or Verce
 
 ## Zero-cost guarantee
 
-There is no OpenAI/Anthropic/any paid LLM key anywhere in this codebase. Every "smart" feature (career match, score, skill gaps, JD match) is local Python + scikit-learn + regex. You can run this forever for free (aside from normal hosting-tier limits).
+There is no OpenAI/Anthropic/any paid LLM key required anywhere in this codebase. Every core feature (career match, score, skill gaps, JD match, resume parsing/export) is local Python + scikit-learn + regex. You can run this forever for free (aside from normal hosting-tier limits).
+
+## Optional: Enhanced Mode (free Gemini API)
+
+There's an opt-in "✨ Try Enhanced AI Summary" checkbox in the UI that, when enabled by the site owner, calls Google's Gemini API for a more natural-language summary and improvement tips layered on top of the local analysis. It's off by default and the app is fully functional without it.
+
+To turn it on:
+1. Get a free API key at [aistudio.google.com](https://aistudio.google.com/apikey) (no credit card needed for the free tier).
+2. In Render, go to your backend service -> Environment -> add `GEMINI_API_KEY` = your key.
+3. Redeploy. `/api/health` will now report `"enhanced_mode_configured": true`.
+
+This uses `gemini-2.5-flash-lite`, which has a generous free daily quota. The key lives only on your backend server (`backend/app/llm_enhance.py`) — it's never sent to or requested from the browser, and every other feature keeps working with zero cost if you skip this step. If the key is missing, invalid, or the API is unreachable, the app quietly falls back to the local analysis instead of breaking the request.

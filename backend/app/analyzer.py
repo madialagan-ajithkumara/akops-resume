@@ -12,6 +12,7 @@ from .skills_data import (
     SOFT_SKILLS,
     ACTION_VERBS,
     RESUME_SECTION_HINTS,
+    SKILL_ALIASES,
     master_skill_list,
 )
 
@@ -46,8 +47,35 @@ def _find_skills(text: str, vocabulary: list[str]) -> list[str]:
     return found
 
 
+def _canonical_lookup() -> dict[str, str]:
+    """lowercase skill text -> its exact-cased canonical form, for alias resolution."""
+    return {s.lower(): s for s in _MASTER_SKILLS}
+
+
+_CANONICAL_BY_LOWER = None
+
+
 def detect_skills(text: str) -> list[str]:
-    return _find_skills(text, _MASTER_SKILLS)
+    global _CANONICAL_BY_LOWER
+    if _CANONICAL_BY_LOWER is None:
+        _CANONICAL_BY_LOWER = _canonical_lookup()
+
+    found = _find_skills(text, _MASTER_SKILLS)
+    found_lower = {s.lower() for s in found}
+
+    lowered_text = text.lower()
+    for alias, canonical in SKILL_ALIASES.items():
+        canonical_lower = canonical.lower()
+        if canonical_lower in found_lower:
+            continue
+        pattern = r"(?<![a-z0-9])" + re.escape(alias) + r"(?![a-z0-9])"
+        if re.search(pattern, lowered_text):
+            resolved = _CANONICAL_BY_LOWER.get(canonical_lower)
+            if resolved:
+                found.append(resolved)
+                found_lower.add(canonical_lower)
+
+    return found
 
 
 def detect_soft_skills(text: str) -> list[str]:

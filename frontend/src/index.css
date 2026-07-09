@@ -521,3 +521,35 @@ textarea.jd-input:focus { outline: none; border-color: var(--border-strong); }
   flex-wrap: wrap;
 }
 .download-row .btn-primary { flex: 1; min-width: 220px; margin-top: 0; }
+
+/* --- Enhanced Mode --- */
+.enhanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 10px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.enhanced-toggle input { accent-color: var(--purple); width: 16px; height: 16px; }
+.badge-optional {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-left: 4px;
+}
+
+.enhanced-card {
+  border-image: none;
+  background: var(--gradient-soft);
+  border: 1px solid var(--border-strong);
+}
+.enhanced-note { opacity: 0.7; }

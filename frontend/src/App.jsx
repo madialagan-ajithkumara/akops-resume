@@ -105,6 +105,36 @@ function CareerMatches({ matches }) {
   )
 }
 
+function EnhancedCard({ result }) {
+  if (!result.enhanced_available) {
+    if (result.enhanced_error) {
+      return (
+        <div className="card enhanced-note">
+          <div className="card-title">🤖 Enhanced AI Summary</div>
+          <div className="summary-text" style={{ color: 'var(--text-faint)' }}>{result.enhanced_error}</div>
+        </div>
+      )
+    }
+    return null
+  }
+  return (
+    <div className="card enhanced-card">
+      <div className="card-title">🤖 Enhanced AI Summary</div>
+      <div className="summary-text">{result.enhanced_summary}</div>
+      {result.enhanced_tips && result.enhanced_tips.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8, textAlign: 'center' }}>Suggested improvements</div>
+          <div className="pill-list">
+            {result.enhanced_tips.map((tip, i) => (
+              <div className="pill" key={i}>{tip}</div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function JdMatchCard({ matchPercent, matched, missing }) {
   return (
     <div className="card">
@@ -142,6 +172,7 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState(null)
+  const [enhanced, setEnhanced] = useState(false)
 
   const canSubmit = file && (mode === 'analysis' || jdText.trim().length > 20) && !loading
 
@@ -154,6 +185,7 @@ export default function App() {
       form.append('resume', file)
       const endpoint = mode === 'analysis' ? '/api/analyze' : '/api/match'
       if (mode === 'match') form.append('job_description', jdText)
+      form.append('enhanced', enhanced ? 'true' : 'false')
 
       const res = await fetch(`${API_URL}${endpoint}`, { method: 'POST', body: form })
       const data = await res.json()
@@ -207,6 +239,11 @@ export default function App() {
               </>
             )}
 
+            <label className="enhanced-toggle">
+              <input type="checkbox" checked={enhanced} onChange={(e) => setEnhanced(e.target.checked)} />
+              <span>✨ Try Enhanced AI Summary <span className="badge-optional">optional</span></span>
+            </label>
+
             <button className="btn-primary" disabled={!canSubmit} onClick={handleSubmit}>
               {loading ? (<><span className="spinner" />Analyzing...</>) : mode === 'analysis' ? '✨ Analyze Resume' : '🎯 Check JD Match'}
             </button>
@@ -240,6 +277,7 @@ export default function App() {
             <JdMatchCard matchPercent={result.match_percent} matched={result.matched_skills} missing={result.missing_skills} />
           )}
           <SummaryCard summary={result.summary} />
+          <EnhancedCard result={result} />
           <StrengthsAndLearn strengths={result.strengths} skillsToLearn={result.skills_to_learn} />
           <CareerMatches matches={result.career_matches} />
           <div className="reset-row">

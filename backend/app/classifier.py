@@ -20,7 +20,7 @@ from .skills_data import CAREER_SKILLS
 _RNG = random.Random(42)
 
 
-def _synthetic_documents(category: str, core: list[str], next_skills: list[str], n_docs: int = 40) -> list[str]:
+def _synthetic_documents(category: str, core: list[str], next_skills: list[str], n_docs: int = 70) -> list[str]:
     """
     Build n_docs synthetic 'resume skill sections' for a category by sampling
     varying subsets of its core (and occasionally adjacent 'next') skills.

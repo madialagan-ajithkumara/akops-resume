@@ -9,6 +9,7 @@ from .resume_parser import parse_resume
 from .schemas import ExportRequest
 from .export_pdf import build_resume_pdf
 from .export_docx import build_resume_docx
+from . import llm_enhance
 
 app = FastAPI(title="AKOps Resume AI", version="1.1.0")
 
@@ -33,24 +34,43 @@ def _pdf_to_text(upload: UploadFile) -> str:
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "enhanced_mode_configured": llm_enhance.is_configured()}
+
+
+def _maybe_enhance(result: dict, text: str, enhanced: bool) -> dict:
+    """
+    Attach optional AI-enhanced insights. Never breaks the request: if
+    enhanced mode wasn't requested, isn't configured, or the call fails for
+    any reason, the reliable local analysis is still returned untouched.
+    """
+    if not enhanced:
+        return result
+    if not llm_enhance.is_configured():
+        return {**result, "enhanced_available": False,
+                "enhanced_error": "Enhanced mode isn't configured on this server yet."}
+    try:
+        extra = llm_enhance.enhance_analysis(text, result)
+        return {**result, "enhanced_available": True, **extra}
+    except Exception as e:
+        return {**result, "enhanced_available": False, "enhanced_error": str(e)[:300]}
 
 
 @app.post("/api/analyze")
-async def analyze(resume: UploadFile = File(...)):
+async def analyze(resume: UploadFile = File(...), enhanced: bool = Form(False)):
     text = _pdf_to_text(resume)
     result = analyze_resume(text)
-    return result
+    return _maybe_enhance(result, text, enhanced)
 
 
 @app.post("/api/match")
-async def match(resume: UploadFile = File(...), job_description: str = Form(...)):
+async def match(resume: UploadFile = File(...), job_description: str = Form(...), enhanced: bool = Form(False)):
     if not job_description or len(job_description.split()) < 5:
         raise HTTPException(status_code=400, detail="Please paste a fuller job description.")
     text = _pdf_to_text(resume)
     base = analyze_resume(text)
     match_result = match_resume_to_jd(text, job_description)
-    return {**base, **match_result}
+    combined = {**base, **match_result}
+    return _maybe_enhance(combined, text, enhanced)
 
 
 @app.post("/api/parse")
