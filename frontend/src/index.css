@@ -75,7 +75,7 @@ a { color: inherit; }
   cursor: pointer; text-align: left; border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
-.logo-mark { width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0; }
+.logo-mark { width: 32px; height: 32px; flex-shrink: 0; display: block; }
 .brand-text-title { font-family: "Sora", sans-serif; font-weight: 700; font-size: 15.5px; letter-spacing: -0.2px; color: var(--text); }
 .brand-text-title .grad { color: var(--emerald-light); }
 
@@ -145,12 +145,14 @@ a { color: inherit; }
 .score-preview-fill { height: 100%; border-radius: 999px; background: var(--emerald); }
 
 /* ================= Trust metrics strip ================= */
-.metrics-strip { padding: 22px 0; border-bottom: 1px solid var(--border); }
-.metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
-@media (max-width: 780px) { .metrics-row { grid-template-columns: repeat(2, 1fr); gap: 18px; } }
-.metric-item { text-align: center; }
-.metric-value { font-family: "Sora", sans-serif; font-size: 22px; font-weight: 700; color: var(--emerald-light); }
-.metric-label { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+.metrics-strip { padding: 18px 0; border-bottom: 1px solid var(--border); }
+.metrics-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 32px; }
+.metric-item {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; color: var(--text-muted);
+}
+.metric-item svg { color: var(--emerald-light); flex-shrink: 0; }
+@media (max-width: 780px) { .metrics-row { gap: 10px 20px; } }
 
 /* ================= Sections ================= */
 .section { padding: 40px 0; }

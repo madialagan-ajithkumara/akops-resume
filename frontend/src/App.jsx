@@ -119,10 +119,10 @@ function Hero({ onUploadClick }) {
 
 function TrustMetrics() {
   const metrics = [
-    { value: '$0', label: 'Cost to use' },
-    { value: '0', label: 'Resumes stored' },
-    { value: '25+', label: 'Career tracks covered' },
-    { value: '<60s', label: 'Typical analysis time' },
+    { icon: Icon.sparkle, label: 'Free Beta Access' },
+    { icon: Icon.shield, label: 'Privacy First' },
+    { icon: Icon.award, label: '25+ Career Paths' },
+    { icon: Icon.clock, label: '<60s Analysis' },
   ]
   return (
     <div className="metrics-strip">
@@ -130,8 +130,8 @@ function TrustMetrics() {
         <div className="metrics-row">
           {metrics.map((m) => (
             <div className="metric-item" key={m.label}>
-              <div className="metric-value">{m.value}</div>
-              <div className="metric-label">{m.label}</div>
+              <m.icon size={15} />
+              <span>{m.label}</span>
             </div>
           ))}
         </div>
