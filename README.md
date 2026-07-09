@@ -1,12 +1,22 @@
 # AKOps Resume AI
 
-Free, self-hosted resume analysis and JD-vs-CV matching. **No paid AI/LLM API calls anywhere** — the whole "Job Readiness Score", career-match, and skill-gap logic runs on a small local ML model (TF-IDF + Logistic Regression) plus deterministic scoring rules, so there's no per-request token cost, ever.
+Free, self-hosted resume analysis and JD-vs-CV matching, by **AKOps Labs**. **No paid AI/LLM API calls anywhere** — the whole "Job Readiness Score", career-match, and skill-gap logic runs on a small local ML model (TF-IDF + Logistic Regression) plus deterministic scoring rules, so there's no per-request token cost, ever.
+
+## Dashboard UI (green/black enterprise theme)
+
+The frontend is a sidebar dashboard shell (`frontend/src/App.jsx`, `Sidebar`/`SiteHeader`/`ScorePanel` components): left sidebar for navigation (Dashboard, Resume Analysis, JD vs CV Match, Resume Builder), a circular score ring plus a **real** 4-metric breakdown (ATS Compatibility, Skills Match, Content Quality, Impact & Clarity — all derived from the same already-computed scoring signals in `backend/app/analyzer.py`, nothing fabricated), stat chips (experience level, estimated page count, file type, analyzed-on date), a "Your Strengths" / "Areas To Improve" pair of cards, and a file-management row with Replace/Re-analyze plus Download/Share/Save Report actions (a real one-page PDF report via `backend/app/export_report_pdf.py` — no new AI call, just reportlab).
+
+We intentionally did **not** build the separate "Keyword Extractor / Skills Analyzer / ATS Scanner" tool pages sometimes shown in dashboard mockups — those would need real new backend logic, and for now the existing three features (Resume Analysis, JD vs CV Match, Resume Builder) already surface that same underlying data. Worth revisiting later if there's demand.
+
+## Resume/CV sanity check
+
+Before analyzing anything, `backend/app/resume_gate.py` checks whether the uploaded PDF actually looks like a resume (short length, has an email/phone, has resume section headers, doesn't read like a report/whitepaper). Uploading something like an industry report or whitepaper gets a clear "this doesn't look like a resume" error instead of a fabricated score — this was added after testing showed a long non-resume PDF (a database industry report) was getting scored and matched to jobs just because it happened to mention a lot of the same technical keywords.
 
 ## How the "AI" works here (and why there's no API bill)
 
 - **Skill detection**: keyword/phrase matching against a curated open skill taxonomy (`backend/app/skills_data.py`, ~25 career tracks: DevOps, Data Science, Frontend, Cybersecurity, etc.)
 - **Career-match classifier**: a TF-IDF + Logistic Regression model (`backend/app/classifier.py`) trained at server startup in under a second, entirely in memory, from that taxonomy. No GPU, no external calls.
-- **Job Readiness Score**: rule-based (skill breadth, action verbs, quantified achievements, resume structure, soft skills, length).
+- **Job Readiness Score**: rule-based (skill breadth, action verbs, quantified achievements, resume structure, soft skills, length), broken down into ATS Compatibility / Skills Match / Content Quality / Impact & Clarity for the dashboard.
 - **JD vs CV Match**: classic TF-IDF cosine similarity between the JD and the resume text — the same core technique real ATS tools use.
 - **PDF parsing**: `pypdf`, fully local.
 
@@ -27,14 +37,16 @@ A third tab, **Resume Builder**, lets someone upload a CV and get it back as str
 akops-resume-ai/
   backend/          FastAPI app (Python)
     app/
-      main.py        API routes: /api/analyze, /api/match, /api/parse, /api/export, /api/feedback, /api/categories, /api/chat, /api/health
+      main.py        API routes: /api/analyze, /api/match, /api/parse, /api/export, /api/analysis-report, /api/feedback, /api/categories, /api/chat, /api/health
       classifier.py   local TF-IDF + LogisticRegression career classifier + in-memory add_feedback() continuous learning
-      analyzer.py     skill detection, scoring, summary, strengths
+      analyzer.py     skill detection, scoring + real ATS/Skills/Content/Impact breakdown, experience-level & page estimates, strengths, improvement suggestions
+      resume_gate.py  "does this even look like a resume?" sanity check before analyzing
       matcher.py      JD vs CV cosine-similarity matching
       resume_parser.py   heuristic CV -> structured sections parser
-      schemas.py      pydantic models for the editable resume JSON, chat, and feedback requests
+      schemas.py      pydantic models for the editable resume JSON, chat, feedback, and analysis-report requests
       export_pdf.py   structured resume -> polished PDF (reportlab)
       export_docx.py  structured resume -> polished Word doc (python-docx)
+      export_report_pdf.py   analysis result -> one-page PDF report (reportlab), powers Download/Save Report
       skills_data.py  open skill taxonomy (25 career tracks) + skill alias/synonym map
       pdf_utils.py    PDF text extraction
       gemini_client.py   shared low-level Gemini REST caller (used by both features below)
@@ -42,10 +54,11 @@ akops-resume-ai/
       chat_assist.py  OPTIONAL: Resume Chat Assistant widget, scoped to resume/career questions only
     requirements.txt
     render.yaml       one-click Render free-tier deploy config
-  frontend/          React (Vite) app, same purple/dark AKOps theme
-    src/App.jsx
+  frontend/          React (Vite) app, green/black AKOps Labs dashboard theme
+    src/App.jsx             sidebar dashboard shell
+    src/Logo.jsx             "A" mark logo (SVG)
     src/ResumeBuilder.jsx   parse -> edit -> download UI
-    src/ChatWidget.jsx      floating bottom-left chat assistant
+    src/ChatWidget.jsx      floating bottom-right chat assistant
     src/index.css
     vercel.json
 ```

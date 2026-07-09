@@ -6,9 +6,10 @@ from .pdf_utils import extract_text_from_pdf
 from .analyzer import analyze_resume
 from .matcher import match_resume_to_jd
 from .resume_parser import parse_resume
-from .schemas import ExportRequest, ChatRequest, FeedbackRequest
+from .schemas import ExportRequest, ChatRequest, FeedbackRequest, AnalysisReportRequest
 from .export_pdf import build_resume_pdf
 from .export_docx import build_resume_docx
+from .export_report_pdf import build_analysis_report_pdf
 from .classifier import career_classifier
 from .skills_data import CAREER_SKILLS
 from . import llm_enhance, chat_assist, gemini_client
@@ -144,6 +145,17 @@ async def feedback(payload: FeedbackRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"status": "ok", "feedback_count": career_classifier.feedback_count()}
+
+
+@app.post("/api/analysis-report")
+async def analysis_report(payload: AnalysisReportRequest):
+    """Render an already-computed Resume Analysis / JD Match result as a downloadable PDF report."""
+    content = build_analysis_report_pdf(payload.result, payload.resume_filename)
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="resume-analysis-report.pdf"'},
+    )
 
 
 @app.post("/api/chat")

@@ -59,3 +59,8 @@ class ChatRequest(BaseModel):
 class FeedbackRequest(BaseModel):
     detected_skills: list[str]
     correct_category: str
+
+
+class AnalysisReportRequest(BaseModel):
+    result: dict
+    resume_filename: str = ""
