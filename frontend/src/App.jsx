@@ -15,16 +15,16 @@ function BackgroundOrbs() {
   )
 }
 
-function SiteHeader() {
+function SiteHeader({ onHome }) {
   return (
     <div className="site-header">
-      <div className="brand-block">
+      <button className="brand-block" onClick={onHome} aria-label="Go to home">
         <Logo size={42} />
         <div>
           <div className="brand-text-title">AKOps <span className="grad">Resume AI</span></div>
           <div className="brand-text-sub">Powered by AKOps Labs</div>
         </div>
-      </div>
+      </button>
       <div className="header-right">
         <a className="social-link" href="https://www.youtube.com/@AkOpsTamil" target="_blank" rel="noreferrer" aria-label="AKOps Tamil on YouTube" title="AKOps Tamil on YouTube">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.4 3.5 12 3.5 12 3.5s-7.4 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c2 .6 9.4.6 9.4.6s7.4 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4L15.8 12Z"/></svg>
@@ -38,36 +38,21 @@ function SiteHeader() {
   )
 }
 
-function Sidebar({ mode, result, onNavigate, collapsed, onToggle }) {
-  const items = [
-    { key: 'dashboard', icon: '▦', label: 'Dashboard' },
-  ]
+function Sidebar({ mode, onNavigate, collapsed, onToggle }) {
   const analysisItems = [
     { key: 'analysis', icon: '📊', label: 'Resume Analysis' },
     { key: 'match', icon: '🎯', label: 'JD vs CV Match' },
     { key: 'builder', icon: '📝', label: 'Resume Builder' },
   ]
-  const dashboardActive = !!result
   return (
     <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       <button className="sidebar-toggle" onClick={onToggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={collapsed ? 'Expand' : 'Collapse'}>
         {collapsed ? '»' : '«'}
       </button>
-      {items.map((it) => (
-        <button
-          key={it.key}
-          className={`sidebar-item ${dashboardActive ? 'active' : ''}`}
-          onClick={() => onNavigate('dashboard')}
-          title={it.label}
-        >
-          <span className="sidebar-icon">{it.icon}</span><span className="sidebar-label">{it.label}</span>
-        </button>
-      ))}
-      <div className="sidebar-section-label">{collapsed ? '' : 'ANALYSIS'}</div>
       {analysisItems.map((it) => (
         <button
           key={it.key}
-          className={`sidebar-item ${!dashboardActive && mode === it.key ? 'active' : ''}`}
+          className={`sidebar-item ${mode === it.key ? 'active' : ''}`}
           onClick={() => onNavigate(it.key)}
           title={it.label}
         >
@@ -426,10 +411,6 @@ export default function App() {
   }
 
   function navigate(target) {
-    if (target === 'dashboard') {
-      if (!result) setMode('analysis')
-      return
-    }
     if (target === 'builder') {
       setResult(null)
       setMode('builder')
@@ -437,6 +418,11 @@ export default function App() {
     }
     reset()
     setMode(target)
+  }
+
+  function goHome() {
+    reset()
+    setMode('analysis')
   }
 
   async function downloadReport() {
@@ -481,11 +467,10 @@ export default function App() {
   return (
     <div>
       <BackgroundOrbs />
-      <SiteHeader />
+      <SiteHeader onHome={goHome} />
       <div className="app-shell">
         <Sidebar
           mode={mode}
-          result={result}
           onNavigate={navigate}
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed((v) => !v)}
