@@ -38,7 +38,7 @@ function SiteHeader() {
   )
 }
 
-function Sidebar({ mode, result, onNavigate }) {
+function Sidebar({ mode, result, onNavigate, collapsed, onToggle }) {
   const items = [
     { key: 'dashboard', icon: '▦', label: 'Dashboard' },
   ]
@@ -49,24 +49,29 @@ function Sidebar({ mode, result, onNavigate }) {
   ]
   const dashboardActive = !!result
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+      <button className="sidebar-toggle" onClick={onToggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={collapsed ? 'Expand' : 'Collapse'}>
+        {collapsed ? '»' : '«'}
+      </button>
       {items.map((it) => (
         <button
           key={it.key}
           className={`sidebar-item ${dashboardActive ? 'active' : ''}`}
           onClick={() => onNavigate('dashboard')}
+          title={it.label}
         >
-          <span className="sidebar-icon">{it.icon}</span>{it.label}
+          <span className="sidebar-icon">{it.icon}</span><span className="sidebar-label">{it.label}</span>
         </button>
       ))}
-      <div className="sidebar-section-label">ANALYSIS</div>
+      <div className="sidebar-section-label">{collapsed ? '' : 'ANALYSIS'}</div>
       {analysisItems.map((it) => (
         <button
           key={it.key}
           className={`sidebar-item ${!dashboardActive && mode === it.key ? 'active' : ''}`}
           onClick={() => onNavigate(it.key)}
+          title={it.label}
         >
-          <span className="sidebar-icon">{it.icon}</span>{it.label}
+          <span className="sidebar-icon">{it.icon}</span><span className="sidebar-label">{it.label}</span>
         </button>
       ))}
     </div>
@@ -123,18 +128,6 @@ function Dropzone({ file, onChange }) {
       <input type="file" accept="application/pdf" onChange={(e) => onChange(e.target.files?.[0] || null)} />
       {file && <span className="filename">{file.name}</span>}
     </label>
-  )
-}
-
-function TabGroup({ mode, setMode }) {
-  return (
-    <div className="tabs">
-      <div className="tab-group">
-        <button className={`tab ${mode === 'analysis' ? 'active' : ''}`} onClick={() => setMode('analysis')}>📊 Resume Analysis</button>
-        <button className={`tab ${mode === 'match' ? 'active' : ''}`} onClick={() => setMode('match')}>🎯 JD vs CV Match</button>
-        <button className={`tab ${mode === 'builder' ? 'active' : ''}`} onClick={() => setMode('builder')}>📝 Resume Builder</button>
-      </div>
-    </div>
   )
 }
 
@@ -393,6 +386,7 @@ export default function App() {
   const [analyzedAt, setAnalyzedAt] = useState('')
   const [downloading, setDownloading] = useState(false)
   const [toast, setToast] = useState('')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
 
   const canSubmit = file && (mode === 'analysis' || jdText.trim().length > 20) && !loading
 
@@ -489,7 +483,13 @@ export default function App() {
       <BackgroundOrbs />
       <SiteHeader />
       <div className="app-shell">
-        <Sidebar mode={mode} result={result} onNavigate={navigate} />
+        <Sidebar
+          mode={mode}
+          result={result}
+          onNavigate={navigate}
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed((v) => !v)}
+        />
         <div className="main-content">
           <div className="page">
             {!result && (
@@ -502,7 +502,6 @@ export default function App() {
 
             {!result && mode !== 'builder' && (
               <>
-                <TabGroup mode={mode} setMode={setMode} />
                 <div className="card">
                   <Dropzone file={file} onChange={setFile} />
 
@@ -532,12 +531,7 @@ export default function App() {
               </>
             )}
 
-            {mode === 'builder' && !result && (
-              <>
-                <TabGroup mode={mode} setMode={setMode} />
-                <ResumeBuilder />
-              </>
-            )}
+            {mode === 'builder' && !result && <ResumeBuilder />}
 
             {result && (
               <>
