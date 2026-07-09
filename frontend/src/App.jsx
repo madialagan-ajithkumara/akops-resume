@@ -1,117 +1,166 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ResumeBuilder from './ResumeBuilder'
 import ChatWidget from './ChatWidget'
 import Logo from './Logo'
+import Icon from './Icon'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-function BackgroundOrbs() {
-  return (
-    <>
-      <div className="bg-orb one" />
-      <div className="bg-orb two" />
-      <div className="bg-orb three" />
-    </>
-  )
-}
+const NAV_ITEMS = [
+  { key: 'analysis', icon: Icon.chart, label: 'Resume Analysis' },
+  { key: 'match', icon: Icon.target, label: 'JD Match' },
+  { key: 'builder', icon: Icon.file, label: 'Resume Builder' },
+]
 
-function SiteHeader({ onHome }) {
+function SiteHeader({ mode, onNavigate, onHome }) {
   return (
     <div className="site-header">
-      <button className="brand-block" onClick={onHome} aria-label="Go to home">
-        <Logo size={42} />
-        <div>
+      <div className="site-header-inner">
+        <button className="brand-block" onClick={onHome} aria-label="Go to home">
+          <Logo size={32} />
           <div className="brand-text-title">AKOps <span className="grad">Resume AI</span></div>
-          <div className="brand-text-sub">Powered by AKOps Labs</div>
-        </div>
-      </button>
-      <div className="header-right">
-        <a className="social-link" href="https://www.youtube.com/@AkOpsTamil" target="_blank" rel="noreferrer" aria-label="AKOps Tamil on YouTube" title="AKOps Tamil on YouTube">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.4 3.5 12 3.5 12 3.5s-7.4 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c2 .6 9.4.6 9.4.6s7.4 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4L15.8 12Z"/></svg>
-        </a>
-        <a className="social-link" href="https://www.linkedin.com/in/ajithkumara-madialagan-256625169/" target="_blank" rel="noreferrer" aria-label="Ajithkumara Madialagan on LinkedIn" title="Ajithkumara Madialagan on LinkedIn">
-          <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M20.45 20.45h-3.56v-5.58c0-1.33-.02-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.95v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.07 2.07 0 1 1 0-4.13 2.07 2.07 0 0 1 0 4.13ZM7.12 20.45H3.56V9h3.56v11.45Z"/></svg>
-        </a>
-        <span className="badge">Powered by <b>AKOps Labs</b></span>
-      </div>
-    </div>
-  )
-}
-
-function Sidebar({ mode, onNavigate, collapsed, onToggle }) {
-  const analysisItems = [
-    { key: 'analysis', icon: '📊', label: 'Resume Analysis' },
-    { key: 'match', icon: '🎯', label: 'JD vs CV Match' },
-    { key: 'builder', icon: '📝', label: 'Resume Builder' },
-  ]
-  return (
-    <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
-      <button className="sidebar-toggle" onClick={onToggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={collapsed ? 'Expand' : 'Collapse'}>
-        {collapsed ? '»' : '«'}
-      </button>
-      {analysisItems.map((it) => (
-        <button
-          key={it.key}
-          className={`sidebar-item ${mode === it.key ? 'active' : ''}`}
-          onClick={() => onNavigate(it.key)}
-          title={it.label}
-        >
-          <span className="sidebar-icon">{it.icon}</span><span className="sidebar-label">{it.label}</span>
         </button>
-      ))}
-    </div>
-  )
-}
 
-function Hero() {
-  return (
-    <div className="hero">
-      <div className="brand">
-        <div className="brand-title"><span className="grad">Your AI Career Assistant</span></div>
+        <nav className="top-nav">
+          {NAV_ITEMS.map((it) => (
+            <button
+              key={it.key}
+              className={`top-nav-item ${mode === it.key ? 'active' : ''}`}
+              onClick={() => onNavigate(it.key)}
+            >
+              <it.icon size={15} />{it.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="header-right">
+          <a className="social-link" href="https://www.youtube.com/@AkOpsTamil" target="_blank" rel="noreferrer" aria-label="AKOps Tamil on YouTube" title="YouTube">
+            <Icon.youtube size={16} />
+          </a>
+          <a className="social-link" href="https://www.linkedin.com/in/ajithkumara-madialagan-256625169/" target="_blank" rel="noreferrer" aria-label="Ajithkumara Madialagan on LinkedIn" title="LinkedIn">
+            <Icon.linkedin size={15} />
+          </a>
+          <span className="header-powered">Powered by <b>AKOps Labs</b></span>
+        </div>
       </div>
-      <p className="hero-subtitle">
-        Get an instant, honest score on your resume, see exactly how well it matches any job
-        description, and rebuild it into a polished PDF or Word doc — all in under a minute.
-      </p>
     </div>
   )
 }
 
-function TrustBar() {
+function BottomNav({ mode, onNavigate }) {
   return (
-    <div className="trust-bar">
-      <span className="trust-chip">🔒 <b>Your CV is never stored</b></span>
-      <span className="trust-chip">⚡ <b>Instant local AI</b> — no wait</span>
-      <span className="trust-chip">💯 <b>100% free</b>, no sign-up</span>
+    <div className="bottom-nav">
+      <div className="bottom-nav-row">
+        {NAV_ITEMS.map((it) => (
+          <button
+            key={it.key}
+            className={`bottom-nav-item ${mode === it.key ? 'active' : ''}`}
+            onClick={() => onNavigate(it.key)}
+          >
+            <it.icon size={19} />{it.label}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
 
-function HowItWorks() {
-  const steps = [
-    { n: 1, title: 'Upload your resume', body: 'Drop in a PDF — nothing is saved on our servers.' },
-    { n: 2, title: 'Get instant AI insights', body: 'A local ML model scores it and finds your best-fit career matches.' },
-    { n: 3, title: 'Improve & download', body: 'Fix gaps, then export a polished, ATS-friendly PDF or Word doc.' },
+function ScorePreview() {
+  const rows = [
+    { label: 'ATS Compatibility', pct: 92 },
+    { label: 'Skills Match', pct: 88 },
+    { label: 'Impact & Clarity', pct: 79 },
   ]
   return (
-    <div className="how-it-works">
-      {steps.map((s) => (
-        <div className="how-step" key={s.n}>
-          <div className="num">{s.n}</div>
-          <h4>{s.title}</h4>
-          <p>{s.body}</p>
+    <div className="score-preview">
+      <div className="score-preview-head">
+        <span className="score-preview-title">Sample Analysis</span>
+        <span className="score-preview-live"><span className="score-preview-dot" />Preview</span>
+      </div>
+      <div className="score-preview-body">
+        <div className="score-preview-ring">
+          <div className="score-ring" style={{ '--pct': 87 }}>
+            <div className="score-ring-inner"><div className="score-preview-number">87</div></div>
+          </div>
         </div>
-      ))}
+        <div className="score-preview-bars">
+          {rows.map((r) => (
+            <div className="score-preview-bar-row" key={r.label}>
+              <span className="score-preview-bar-label">{r.label}</span>
+              <div className="score-preview-track"><div className="score-preview-fill" style={{ width: `${r.pct}%` }} /></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Hero({ onUploadClick }) {
+  return (
+    <div className="hero-section">
+      <div className="container">
+        <div className="hero-grid">
+          <div>
+            <span className="eyebrow"><Icon.shield size={12} />Local AI · No Resume Storage</span>
+            <h1 className="hero-heading">Know exactly how your resume<br className="hero-break" /> performs <span className="accent">before</span> you apply</h1>
+            <p className="hero-desc">Instant ATS scoring, job-description matching, and a resume builder — all running on local ML with zero AI subscription cost.</p>
+            <div className="hero-cta-row">
+              <button className="btn-hero" onClick={onUploadClick}><Icon.upload size={16} />Upload Resume</button>
+              <span className="hero-meta">No sign-up · Free forever</span>
+            </div>
+          </div>
+          <ScorePreview />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TrustMetrics() {
+  const metrics = [
+    { value: '$0', label: 'Cost to use' },
+    { value: '0', label: 'Resumes stored' },
+    { value: '25+', label: 'Career tracks covered' },
+    { value: '<60s', label: 'Typical analysis time' },
+  ]
+  return (
+    <div className="metrics-strip">
+      <div className="container">
+        <div className="metrics-row">
+          {metrics.map((m) => (
+            <div className="metric-item" key={m.label}>
+              <div className="metric-value">{m.value}</div>
+              <div className="metric-label">{m.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
 
 function Dropzone({ file, onChange }) {
+  const [dragActive, setDragActive] = useState(false)
+
+  function handleDrop(e) {
+    e.preventDefault()
+    setDragActive(false)
+    const dropped = e.dataTransfer.files?.[0]
+    if (dropped) onChange(dropped)
+  }
+
   return (
-    <label className="dropzone">
-      <span className="dropzone-label">📎 {file ? 'Change PDF Resume' : 'Choose PDF Resume'}</span>
+    <label
+      className={`dropzone ${dragActive ? 'drag-active' : ''}`}
+      onDragOver={(e) => { e.preventDefault(); setDragActive(true) }}
+      onDragLeave={() => setDragActive(false)}
+      onDrop={handleDrop}
+    >
+      <div className="dropzone-icon"><Icon.upload size={19} /></div>
+      <span className="dropzone-label">{file ? 'Change PDF Resume' : 'Drag & drop your resume here'}</span>
+      <span className="dropzone-hint">{file ? file.name : 'or click to choose a PDF'}</span>
       <input type="file" accept="application/pdf" onChange={(e) => onChange(e.target.files?.[0] || null)} />
-      {file && <span className="filename">{file.name}</span>}
     </label>
   )
 }
@@ -129,7 +178,7 @@ function ScorePanel({ result }) {
     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
       <div className="score-panel">
         <div className="score-card">
-          <div className="score-label">OVERALL RESUME SCORE</div>
+          <div className="score-label">Overall Resume Score</div>
           <div className="score-ring-wrap">
             <div className="score-ring" style={{ '--pct': score }}>
               <div className="score-ring-inner">
@@ -158,13 +207,13 @@ function ScorePanel({ result }) {
 function SummaryPanel({ result, analyzedAt }) {
   return (
     <div className="card summary-panel">
-      <div className="card-title">📋 Summary</div>
+      <div className="card-title"><Icon.file size={15} />Summary</div>
       <div className="summary-text">{result.summary}</div>
       <div className="stat-chip-grid">
-        <div className="stat-chip"><div className="stat-chip-top">💼 EXPERIENCE LEVEL</div><div className="stat-chip-value">{result.experience_level}</div></div>
-        <div className="stat-chip"><div className="stat-chip-top">📄 RESUME LENGTH</div><div className="stat-chip-value">{result.estimated_pages}</div></div>
-        <div className="stat-chip"><div className="stat-chip-top">🗂️ FILE TYPE</div><div className="stat-chip-value">{result.file_type}</div></div>
-        <div className="stat-chip"><div className="stat-chip-top">📅 ANALYZED ON</div><div className="stat-chip-value">{analyzedAt}</div></div>
+        <div className="stat-chip"><div className="stat-chip-top"><Icon.brief size={12} />Experience</div><div className="stat-chip-value">{result.experience_level}</div></div>
+        <div className="stat-chip"><div className="stat-chip-top"><Icon.file size={12} />Length</div><div className="stat-chip-value">{result.estimated_pages}</div></div>
+        <div className="stat-chip"><div className="stat-chip-top"><Icon.file size={12} />File Type</div><div className="stat-chip-value">{result.file_type}</div></div>
+        <div className="stat-chip"><div className="stat-chip-top"><Icon.clock size={12} />Analyzed</div><div className="stat-chip-value">{analyzedAt}</div></div>
       </div>
     </div>
   )
@@ -172,13 +221,13 @@ function SummaryPanel({ result, analyzedAt }) {
 
 function StrengthsAndImprove({ strengths, suggestions }) {
   return (
-    <div className="grid-2" style={{ marginBottom: 20 }}>
+    <div className="grid-2" style={{ marginBottom: 16 }}>
       <div className="card">
-        <div className="card-title">✅ Your Strengths</div>
+        <div className="card-title"><Icon.checkCircle size={15} />Strengths</div>
         {strengths.length === 0 && <div className="summary-text">Add more recognizable skills to your resume to surface strengths here.</div>}
         {strengths.map((s) => (
           <div className="info-item" key={s.category}>
-            <div className="info-item-icon good">✓</div>
+            <div className="info-item-icon good"><Icon.check size={13} /></div>
             <div>
               <div className="info-item-title">{s.category}</div>
               <div className="info-item-desc">{s.skills.slice(0, 4).join(', ')}</div>
@@ -187,11 +236,11 @@ function StrengthsAndImprove({ strengths, suggestions }) {
         ))}
       </div>
       <div className="card">
-        <div className="card-title">⚠️ Areas To Improve</div>
+        <div className="card-title"><Icon.alert size={15} />Areas to Improve</div>
         {suggestions.length === 0 && <div className="summary-text">Nothing major — this resume covers the fundamentals well.</div>}
         {suggestions.map((s, i) => (
           <div className="info-item" key={i}>
-            <div className="info-item-icon warn">!</div>
+            <div className="info-item-icon warn"><Icon.alert size={13} /></div>
             <div>
               <div className="info-item-title">{s.title}</div>
               <div className="info-item-desc">{s.description}</div>
@@ -222,15 +271,15 @@ function CareerMatchFeedback({ detectedSkills, topCategory }) {
     setState('sent')
   }
 
-  if (state === 'sent') return <div className="feedback-thanks">✓ Thanks — that helps the model improve for the next person.</div>
+  if (state === 'sent') return <div className="feedback-thanks"><Icon.check size={13} />Thanks — that helps the model improve for the next person.</div>
 
   return (
     <div className="feedback-row">
       {state === 'idle' && (
         <>
           <span className="feedback-label">Was "{topCategory}" the right top match?</span>
-          <button className="feedback-btn" onClick={() => sendFeedback(topCategory)}>👍</button>
-          <button className="feedback-btn" onClick={() => setState('correcting')}>👎</button>
+          <button className="feedback-btn" onClick={() => sendFeedback(topCategory)}>Yes</button>
+          <button className="feedback-btn" onClick={() => setState('correcting')}>No</button>
         </>
       )}
       {state === 'correcting' && (
@@ -252,7 +301,7 @@ function CareerMatches({ matches, detectedSkills }) {
   const visible = showAll ? matches : matches.slice(0, 5)
   return (
     <div className="card">
-      <div className="card-title">🚀 Best Job Matches</div>
+      <div className="card-title"><Icon.trending size={15} />Best Job Matches</div>
       {visible.map((m) => (
         <div className="match-row" key={m.title}>
           <div className="match-title">{m.title}</div>
@@ -263,7 +312,8 @@ function CareerMatches({ matches, detectedSkills }) {
       {matches.length > 5 && (
         <div className="view-more-row">
           <button className="btn-outline" onClick={() => setShowAll((v) => !v)}>
-            {showAll ? '↑ Show fewer matches' : `→ View Detailed Job Matches (${matches.length})`}
+            {showAll ? 'Show fewer matches' : `View all ${matches.length} matches`}
+            <Icon.chevronDown size={14} style={{ transform: showAll ? 'rotate(180deg)' : 'none' }} />
           </button>
         </div>
       )}
@@ -277,7 +327,7 @@ function EnhancedCard({ result }) {
     if (result.enhanced_error) {
       return (
         <div className="card enhanced-note">
-          <div className="card-title">🤖 Enhanced AI Summary</div>
+          <div className="card-title"><Icon.sparkle size={15} />Enhanced AI Summary</div>
           <div className="summary-text" style={{ color: 'var(--text-faint)' }}>{result.enhanced_error}</div>
         </div>
       )
@@ -286,11 +336,11 @@ function EnhancedCard({ result }) {
   }
   return (
     <div className="card enhanced-card">
-      <div className="card-title">🤖 Enhanced AI Summary</div>
+      <div className="card-title"><Icon.sparkle size={15} />Enhanced AI Summary</div>
       <div className="summary-text">{result.enhanced_summary}</div>
       {result.enhanced_tips && result.enhanced_tips.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Suggested improvements</div>
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontWeight: 700, fontSize: 12.5, marginBottom: 7 }}>Suggested improvements</div>
           <div className="pill-list">
             {result.enhanced_tips.map((tip, i) => <div className="pill" key={i}>{tip}</div>)}
           </div>
@@ -305,22 +355,22 @@ function JdMatchCard({ matchPercent, matched, missing }) {
     <div className="card">
       <div className="jd-match-banner">
         <div>
-          <div className="card-title" style={{ justifyContent: 'flex-start' }}>🎯 JD Match Score</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>How well this resume lines up with the job description</div>
+          <div className="card-title" style={{ marginBottom: 4 }}><Icon.target size={15} />JD Match Score</div>
+          <div style={{ color: 'var(--text-faint)', fontSize: 12.5 }}>How well this resume lines up with the job description</div>
         </div>
         <div className="big">{matchPercent}%</div>
       </div>
-      <div style={{ marginTop: 18 }}>
-        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Matched skills</div>
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontWeight: 700, fontSize: 12.5, marginBottom: 6 }}>Matched skills</div>
         <div className="skill-tags">
-          {matched.length === 0 && <span style={{ color: 'var(--text-faint)', fontSize: 13 }}>No direct skill overlap detected.</span>}
+          {matched.length === 0 && <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>No direct skill overlap detected.</span>}
           {matched.map((s) => <span className="skill-tag have" key={s}>{s}</span>)}
         </div>
       </div>
-      <div style={{ marginTop: 16 }}>
-        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Missing skills from JD</div>
+      <div style={{ marginTop: 14 }}>
+        <div style={{ fontWeight: 700, fontSize: 12.5, marginBottom: 6 }}>Missing skills from JD</div>
         <div className="skill-tags">
-          {missing.length === 0 && <span style={{ color: 'var(--text-faint)', fontSize: 13 }}>None — great coverage!</span>}
+          {missing.length === 0 && <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>None — great coverage!</span>}
           {missing.map((s) => <span className="skill-tag missing" key={s}>{s}</span>)}
         </div>
       </div>
@@ -333,23 +383,23 @@ function FileManageAndReport({ file, analyzedAt, onReplace, onReanalyze, reanaly
     <div className="card" style={{ padding: 0 }}>
       <div className="file-manage-row">
         <div className="file-manage-left">
-          <div className="file-icon">📄</div>
+          <div className="file-icon"><Icon.file size={16} /></div>
           <div>
             <div className="file-manage-name">{file?.name || 'Current Resume'}</div>
             <div className="file-manage-meta">Uploaded on {analyzedAt}</div>
           </div>
         </div>
         <div className="file-manage-actions">
-          <button className="btn-ghost" onClick={onReplace}>⤴ Replace File</button>
-          <button className="btn-primary" style={{ width: 'auto', margin: 0, padding: '11px 20px' }} disabled={reanalyzing} onClick={onReanalyze}>
-            {reanalyzing ? (<><span className="spinner" />Re-analyzing...</>) : '↻ Re-analyze Resume'}
+          <button className="btn-ghost" onClick={onReplace}><Icon.upload size={14} />Replace File</button>
+          <button className="btn-primary inline" disabled={reanalyzing} onClick={onReanalyze}>
+            {reanalyzing ? (<><span className="spinner" />Re-analyzing...</>) : (<><Icon.refresh size={14} />Re-analyze</>)}
           </button>
         </div>
       </div>
       <div className="report-actions-row">
-        <button className="btn-outline" disabled={downloading} onClick={onDownload}>⬇ {downloading ? 'Building PDF...' : 'Download Report'}</button>
-        <button className="btn-outline" onClick={onShare}>🔗 Share Report</button>
-        <button className="btn-outline" disabled={downloading} onClick={onSave}>💾 Save Report</button>
+        <button className="btn-outline" disabled={downloading} onClick={onDownload}><Icon.download size={14} />{downloading ? 'Building PDF...' : 'Download Report'}</button>
+        <button className="btn-outline" onClick={onShare}><Icon.share size={14} />Share Report</button>
+        <button className="btn-outline" disabled={downloading} onClick={onSave}><Icon.save size={14} />Save Report</button>
       </div>
     </div>
   )
@@ -371,7 +421,7 @@ export default function App() {
   const [analyzedAt, setAnalyzedAt] = useState('')
   const [downloading, setDownloading] = useState(false)
   const [toast, setToast] = useState('')
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
+  const uploadRef = useRef(null)
 
   const canSubmit = file && (mode === 'analysis' || jdText.trim().length > 20) && !loading
 
@@ -425,6 +475,10 @@ export default function App() {
     setMode('analysis')
   }
 
+  function scrollToUpload() {
+    uploadRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   async function downloadReport() {
     setDownloading(true)
     try {
@@ -466,97 +520,88 @@ export default function App() {
 
   return (
     <div>
-      <BackgroundOrbs />
-      <SiteHeader onHome={goHome} />
-      <div className="app-shell">
-        <Sidebar
-          mode={mode}
-          onNavigate={navigate}
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed((v) => !v)}
-        />
-        <div className="main-content">
-          <div className="page">
-            {!result && (
-              <>
-                <Hero />
-                <TrustBar />
-                {mode !== 'builder' && <HowItWorks />}
-              </>
-            )}
+      <SiteHeader mode={mode} onNavigate={navigate} onHome={goHome} />
 
-            {!result && mode !== 'builder' && (
-              <>
-                <div className="card">
-                  <Dropzone file={file} onChange={setFile} />
+      {!result && mode === 'analysis' && <Hero onUploadClick={scrollToUpload} />}
+      {!result && mode === 'analysis' && <TrustMetrics />}
 
-                  {mode === 'match' && (
-                    <>
-                      <div className="section-label">📄 PASTE JOB DESCRIPTION BELOW</div>
-                      <textarea
-                        className="jd-input"
-                        placeholder={"Paste the full Job Description here...\n\nExample:\nWe are looking for a DevOps Engineer with 3+ years experience in Kubernetes, Docker, AWS, CI/CD pipelines..."}
-                        value={jdText}
-                        onChange={(e) => setJdText(e.target.value)}
-                      />
-                    </>
-                  )}
+      <div className="page">
+        {!result && mode !== 'builder' && (
+          <div className="section" ref={uploadRef}>
+            <div className="section-head">
+              <div className="section-title"><Icon.upload size={17} />{mode === 'analysis' ? 'Upload Your Resume' : 'Match Against a Job Description'}</div>
+              <div className="section-sub">{mode === 'analysis' ? 'Get an instant score, skill breakdown, and career matches.' : 'See exactly what overlaps and what\'s missing.'}</div>
+            </div>
+            <div className="card">
+              <Dropzone file={file} onChange={setFile} />
 
-                  <label className="enhanced-toggle">
-                    <input type="checkbox" checked={enhanced} onChange={(e) => setEnhanced(e.target.checked)} />
-                    <span>✨ Try Enhanced AI Summary <span className="badge-optional">optional</span></span>
-                  </label>
+              {mode === 'match' && (
+                <>
+                  <div className="section-label">Paste job description</div>
+                  <textarea
+                    className="jd-input"
+                    placeholder={"Paste the full Job Description here...\n\nExample:\nWe are looking for a DevOps Engineer with 3+ years experience in Kubernetes, Docker, AWS, CI/CD pipelines..."}
+                    value={jdText}
+                    onChange={(e) => setJdText(e.target.value)}
+                  />
+                </>
+              )}
 
-                  <button className="btn-primary" disabled={!canSubmit} onClick={handleSubmit}>
-                    {loading ? (<><span className="spinner" />Analyzing...</>) : mode === 'analysis' ? '✨ Analyze Resume' : '🎯 Check JD Match'}
-                  </button>
+              <label className="enhanced-toggle">
+                <input type="checkbox" checked={enhanced} onChange={(e) => setEnhanced(e.target.checked)} />
+                <span>Try Enhanced AI Summary <span className="badge-optional">optional</span></span>
+              </label>
 
-                  {error && <div className="error-box">{error}</div>}
-                </div>
-              </>
-            )}
+              <button className="btn-primary" disabled={!canSubmit} onClick={handleSubmit}>
+                {loading ? (<><span className="spinner" />Analyzing...</>) : mode === 'analysis' ? (<><Icon.sparkle size={15} />Analyze Resume</>) : (<><Icon.target size={15} />Check JD Match</>)}
+              </button>
 
-            {mode === 'builder' && !result && <ResumeBuilder />}
-
-            {result && (
-              <>
-                <ScorePanel result={result} />
-                {mode === 'match' && (
-                  <JdMatchCard matchPercent={result.match_percent} matched={result.matched_skills} missing={result.missing_skills} />
-                )}
-                <SummaryPanel result={result} analyzedAt={analyzedAt} />
-                <EnhancedCard result={result} />
-                <StrengthsAndImprove strengths={result.strengths} suggestions={result.improvement_suggestions || []} />
-                <CareerMatches matches={result.career_matches} detectedSkills={result.detected_skills} />
-                <FileManageAndReport
-                  file={file}
-                  analyzedAt={analyzedAt}
-                  onReplace={reset}
-                  onReanalyze={handleSubmit}
-                  reanalyzing={loading}
-                  onDownload={downloadReport}
-                  onSave={downloadReport}
-                  onShare={shareReport}
-                  downloading={downloading}
-                />
-                <div className="reset-row">
-                  <button className="btn-ghost" onClick={reset}>↺ Analyze another resume</button>
-                </div>
-              </>
-            )}
-
-            <div className="footer">
-              <div className="footer-trust-v2">
-                <div className="footer-trust-item"><div className="footer-trust-icon">🔒</div><div className="footer-trust-title">Privacy First</div><div className="footer-trust-sub">Your data is always protected</div></div>
-                <div className="footer-trust-item"><div className="footer-trust-icon">🖥️</div><div className="footer-trust-title">Local AI Processing</div><div className="footer-trust-sub">Analysis happens on secure servers</div></div>
-                <div className="footer-trust-item"><div className="footer-trust-icon">🚫</div><div className="footer-trust-title">No Resume Storage</div><div className="footer-trust-sub">We never store your resume</div></div>
-              </div>
-              Built with ❤ by <b>AKOps Labs</b> · Free & open, no AI subscription needed
+              {error && <div className="error-box"><Icon.alert size={15} />{error}</div>}
             </div>
           </div>
+        )}
+
+        {mode === 'builder' && !result && <ResumeBuilder />}
+
+        {result && (
+          <div className="section">
+            <ScorePanel result={result} />
+            {mode === 'match' && (
+              <JdMatchCard matchPercent={result.match_percent} matched={result.matched_skills} missing={result.missing_skills} />
+            )}
+            <SummaryPanel result={result} analyzedAt={analyzedAt} />
+            <EnhancedCard result={result} />
+            <StrengthsAndImprove strengths={result.strengths} suggestions={result.improvement_suggestions || []} />
+            <CareerMatches matches={result.career_matches} detectedSkills={result.detected_skills} />
+            <FileManageAndReport
+              file={file}
+              analyzedAt={analyzedAt}
+              onReplace={reset}
+              onReanalyze={handleSubmit}
+              reanalyzing={loading}
+              onDownload={downloadReport}
+              onSave={downloadReport}
+              onShare={shareReport}
+              downloading={downloading}
+            />
+            <div className="reset-row">
+              <button className="btn-ghost" onClick={reset}><Icon.refresh size={14} />Analyze another resume</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="footer">
+        <div className="container footer-inner">
+          <div className="footer-trust">
+            <span className="footer-trust-item"><Icon.lock size={14} />Privacy First</span>
+            <span className="footer-trust-item"><Icon.shield size={14} />No Resume Storage</span>
+          </div>
+          <div>Powered by <b>AKOps Labs</b></div>
         </div>
       </div>
 
+      <BottomNav mode={mode} onNavigate={navigate} />
       <ChatWidget />
       <Toast message={toast} />
     </div>

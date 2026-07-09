@@ -1,16 +1,7 @@
 import { useState } from 'react'
+import Icon from './Icon'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-
-const EMPTY_RESUME = {
-  contact: { name: '', email: '', phone: '', linkedin: '', github: '', location: '' },
-  summary: '',
-  skill_categories: [],
-  experience: [],
-  education: [],
-  projects: [],
-  certifications: [],
-}
 
 function Field({ label, value, onChange, placeholder }) {
   return (
@@ -70,7 +61,7 @@ function BulletEditor({ bullets, onChange }) {
           <button className="btn-x" onClick={() => removeBullet(i)}>×</button>
         </div>
       ))}
-      <button className="btn-add-small" onClick={addBullet}>+ Add bullet</button>
+      <button className="btn-add-small" onClick={addBullet}><Icon.chevronDown size={12} style={{ transform: 'rotate(-90deg)' }} />Add bullet</button>
     </div>
   )
 }
@@ -192,29 +183,36 @@ export default function ResumeBuilder() {
 
   if (!resume) {
     return (
-      <div className="card">
-        <label className="dropzone">
-          <span className="dropzone-label">📎 {file ? 'Change PDF Resume' : 'Choose PDF Resume to Build/Edit'}</span>
-          <input type="file" accept="application/pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-          {file && <span className="filename">{file.name}</span>}
-        </label>
-        <button className="btn-primary" disabled={!file || loading} onClick={handleParse}>
-          {loading ? (<><span className="spinner" />Reading your resume...</>) : '🧩 Parse Into Editable Sections'}
-        </button>
-        {error && <div className="error-box">{error}</div>}
-        <p className="hint-text">
-          We'll pull out your contact info, summary, skills (grouped by category), experience, education,
-          projects and certifications so you can edit, add, or remove anything before downloading a
-          freshly formatted resume.
-        </p>
+      <div className="section">
+        <div className="section-head">
+          <div className="section-title"><Icon.file size={17} />Resume Builder</div>
+          <div className="section-sub">Parse your resume into editable sections, then export a polished PDF or Word doc.</div>
+        </div>
+        <div className="card">
+          <label className="dropzone">
+            <div className="dropzone-icon"><Icon.upload size={19} /></div>
+            <span className="dropzone-label">{file ? 'Change PDF Resume' : 'Drag & drop your resume here'}</span>
+            <span className="dropzone-hint">{file ? file.name : 'or click to choose a PDF to build/edit'}</span>
+            <input type="file" accept="application/pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          </label>
+          <button className="btn-primary" disabled={!file || loading} onClick={handleParse}>
+            {loading ? (<><span className="spinner" />Reading your resume...</>) : (<><Icon.sparkle size={15} />Parse Into Editable Sections</>)}
+          </button>
+          {error && <div className="error-box"><Icon.alert size={15} />{error}</div>}
+          <p className="hint-text">
+            We'll pull out your contact info, summary, skills (grouped by category), experience, education,
+            projects and certifications so you can edit, add, or remove anything before downloading a
+            freshly formatted resume.
+          </p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div>
+    <div className="section">
       <div className="card">
-        <div className="card-title">👤 Contact</div>
+        <div className="card-title"><Icon.user size={15} />Contact</div>
         <div className="field-grid">
           <Field label="Full name" value={resume.contact.name} onChange={(v) => updateContact('name', v)} />
           <Field label="Email" value={resume.contact.email} onChange={(v) => updateContact('email', v)} />
@@ -226,17 +224,17 @@ export default function ResumeBuilder() {
       </div>
 
       <div className="card">
-        <div className="card-title">📋 Summary</div>
+        <div className="card-title"><Icon.file size={15} />Summary</div>
         <textarea className="jd-input" style={{ minHeight: 100 }} value={resume.summary} onChange={(e) => updateSummary(e.target.value)} />
       </div>
 
       <div className="card">
-        <div className="card-title">🧠 Skills by Category</div>
+        <div className="card-title"><Icon.chart size={15} />Skills by Category</div>
         {resume.skill_categories.map((cat, i) => (
           <div className="entry-card" key={i}>
             <div className="entry-head">
               <input className="entry-title-input" value={cat.category} onChange={(e) => renameCategory(i, e.target.value)} />
-              <button className="btn-x" onClick={() => removeCategory(i)}>Remove category</button>
+              <button className="btn-x" onClick={() => removeCategory(i)}>Remove</button>
             </div>
             <TagList tags={cat.skills} onRemove={(si) => removeSkill(i, si)} onAdd={(s) => addSkill(i, s)} />
           </div>
@@ -245,7 +243,7 @@ export default function ResumeBuilder() {
       </div>
 
       <div className="card">
-        <div className="card-title">💼 Experience</div>
+        <div className="card-title"><Icon.brief size={15} />Experience</div>
         {resume.experience.map((entry, i) => (
           <div className="entry-card" key={i}>
             <div className="field-grid">
@@ -263,7 +261,7 @@ export default function ResumeBuilder() {
       </div>
 
       <div className="card">
-        <div className="card-title">🚀 Projects</div>
+        <div className="card-title"><Icon.trending size={15} />Projects</div>
         {resume.projects.map((entry, i) => (
           <div className="entry-card" key={i}>
             <Field label="Project title" value={entry.title} onChange={(v) => updateEntry('projects', i, { title: v })} />
@@ -275,7 +273,7 @@ export default function ResumeBuilder() {
       </div>
 
       <div className="card">
-        <div className="card-title">🎓 Education</div>
+        <div className="card-title"><Icon.grad size={15} />Education</div>
         {resume.education.map((entry, i) => (
           <div className="entry-card" key={i}>
             <div className="field-grid">
@@ -290,25 +288,25 @@ export default function ResumeBuilder() {
       </div>
 
       <div className="card">
-        <div className="card-title">📜 Certifications</div>
+        <div className="card-title"><Icon.award size={15} />Certifications</div>
         <TagList tags={resume.certifications} onRemove={removeCert} onAdd={addCert} />
       </div>
 
       <div className="card">
-        <div className="card-title">⬇️ Download Your Polished Resume</div>
+        <div className="card-title"><Icon.download size={15} />Download Your Polished Resume</div>
         <div className="download-row">
           <button className="btn-primary" disabled={!!exporting} onClick={() => handleExport('pdf')}>
-            {exporting === 'pdf' ? (<><span className="spinner" />Building PDF...</>) : '📄 Download as PDF'}
+            {exporting === 'pdf' ? (<><span className="spinner" />Building PDF...</>) : (<><Icon.file size={15} />Download as PDF</>)}
           </button>
           <button className="btn-primary" disabled={!!exporting} onClick={() => handleExport('docx')}>
-            {exporting === 'docx' ? (<><span className="spinner" />Building Word doc...</>) : '📝 Download as Word'}
+            {exporting === 'docx' ? (<><span className="spinner" />Building Word doc...</>) : (<><Icon.file size={15} />Download as Word</>)}
           </button>
         </div>
-        {error && <div className="error-box">{error}</div>}
+        {error && <div className="error-box"><Icon.alert size={15} />{error}</div>}
       </div>
 
       <div className="reset-row">
-        <button className="btn-ghost" onClick={() => { setResume(null); setFile(null) }}>↺ Start over with another resume</button>
+        <button className="btn-ghost" onClick={() => { setResume(null); setFile(null) }}><Icon.refresh size={14} />Start over with another resume</button>
       </div>
     </div>
   )

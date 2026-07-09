@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Icon from './Icon'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -63,10 +64,10 @@ export default function ChatWidget() {
         <div className="chat-panel">
           <div className="chat-header">
             <div>
-              <div className="chat-header-title">🤖 AkOps Assistant</div>
+              <div className="chat-header-title"><Icon.chat size={14} />AkOps Assistant</div>
               <div className="chat-header-sub">Resume & career questions only</div>
             </div>
-            <button className="chat-close" onClick={() => setOpen(false)} aria-label="Close chat">×</button>
+            <button className="chat-close" onClick={() => setOpen(false)} aria-label="Close chat"><Icon.close size={16} /></button>
           </div>
 
           <div className="chat-messages" ref={scrollRef}>
@@ -93,14 +94,14 @@ export default function ChatWidget() {
               onKeyDown={onKeyDown}
             />
             <button className="chat-send" disabled={!configured || loading || !input.trim()} onClick={send} aria-label="Send">
-              ➤
+              <Icon.send size={14} />
             </button>
           </div>
         </div>
       )}
 
       <button className="chat-fab" onClick={() => setOpen((o) => !o)} aria-label="Open resume chat assistant">
-        {open ? '×' : '💬'}
+        {open ? <Icon.close size={22} /> : <Icon.chat size={22} />}
       </button>
     </div>
   )
