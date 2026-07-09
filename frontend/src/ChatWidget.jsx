@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-const GREETING = "Hi! I'm the Resume Assistant. Ask me anything about resumes, job applications, interviews, or how to use this site — that's what I'm here for."
+const GREETING = "Hi! I'm the AkOps Assistant. Ask me anything about resumes, job applications, interviews, or how to use this site — that's what I'm here for."
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false)
@@ -63,7 +63,7 @@ export default function ChatWidget() {
         <div className="chat-panel">
           <div className="chat-header">
             <div>
-              <div className="chat-header-title">🤖 Resume Assistant</div>
+              <div className="chat-header-title">🤖 AkOps Assistant</div>
               <div className="chat-header-sub">Resume & career questions only</div>
             </div>
             <button className="chat-close" onClick={() => setOpen(false)} aria-label="Close chat">×</button>

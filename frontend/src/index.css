@@ -716,12 +716,12 @@ textarea.jd-input:focus { outline: none; border-color: var(--border-strong); }
 /* --- Chat widget (bottom-left) --- */
 .chat-widget {
   position: fixed;
-  left: 22px;
+  right: 22px;
   bottom: 22px;
   z-index: 50;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: flex-end;
 }
 .chat-fab {
   width: 58px; height: 58px;
@@ -837,7 +837,7 @@ textarea.jd-input:focus { outline: none; border-color: var(--border-strong); }
 .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
 
 @media (max-width: 480px) {
-  .chat-widget { left: 14px; bottom: 14px; }
+  .chat-widget { right: 14px; bottom: 14px; }
   .chat-panel { width: calc(100vw - 28px); height: 60vh; }
 }
 
