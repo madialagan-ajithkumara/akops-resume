@@ -6,12 +6,14 @@ from .pdf_utils import extract_text_from_pdf
 from .analyzer import analyze_resume
 from .matcher import match_resume_to_jd
 from .resume_parser import parse_resume
-from .schemas import ExportRequest
+from .schemas import ExportRequest, ChatRequest, FeedbackRequest
 from .export_pdf import build_resume_pdf
 from .export_docx import build_resume_docx
-from . import llm_enhance
+from .classifier import career_classifier
+from .skills_data import CAREER_SKILLS
+from . import llm_enhance, chat_assist, gemini_client
 
-app = FastAPI(title="AKOps Resume AI", version="1.1.0")
+app = FastAPI(title="AKOps Resume AI", version="1.2.0")
 
 # CORS: allow the frontend (any origin, since this is a free public tool with no auth)
 app.add_middleware(
@@ -38,7 +40,16 @@ def health():
         "status": "ok",
         "enhanced_mode_configured": llm_enhance.is_configured(),
         "enhanced_mode_quota_remaining_today": llm_enhance.remaining_quota() if llm_enhance.is_configured() else None,
+        "chat_configured": gemini_client.is_configured(),
+        "chat_quota_remaining_today": chat_assist.remaining_quota() if gemini_client.is_configured() else None,
+        "career_match_feedback_count": career_classifier.feedback_count(),
     }
+
+
+@app.get("/api/categories")
+def categories():
+    """Career-track names, used by the frontend's feedback-correction dropdown."""
+    return {"categories": list(CAREER_SKILLS.keys())}
 
 
 def _maybe_enhance(result: dict, text: str, enhanced: bool) -> dict:
@@ -106,3 +117,33 @@ async def export(payload: ExportRequest):
         media_type=media_type,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@app.post("/api/feedback")
+async def feedback(payload: FeedbackRequest):
+    """
+    Continuous learning, in-memory only: fold a user-confirmed correction
+    (already-detected skills -> the career category they say is right) back
+    into the classifier and retrain immediately. No CV text or personal info
+    is ever involved -- only skill keywords already extracted locally. This
+    lives in process memory and resets on server restart (see classifier.py).
+    """
+    try:
+        career_classifier.add_feedback(" ".join(payload.detected_skills), payload.correct_category)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"status": "ok", "feedback_count": career_classifier.feedback_count()}
+
+
+@app.post("/api/chat")
+async def chat(payload: ChatRequest):
+    """Resume Chat Assistant -- scoped strictly to resume/career questions (see chat_assist.py)."""
+    if not gemini_client.is_configured():
+        raise HTTPException(status_code=503, detail="The chat assistant isn't configured on this server yet.")
+    try:
+        text = chat_assist.reply(payload.message, payload.history)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=429, detail=str(e))
+    return {"reply": text, "quota_remaining": chat_assist.remaining_quota()}

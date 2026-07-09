@@ -5,12 +5,25 @@ No external AI API calls, no tokens, no per-request cost. The model is
 tiny (fits in memory in <1 second) and is trained once at process
 startup from skills_data.CAREER_SKILLS.
 
+Continuous learning (in-memory only): add_feedback() lets the app fold a
+user-confirmed correction ("this resume's skills should have matched X
+category") into the training set and retrain immediately, live, while
+the process is running. This is genuine online learning -- predictions
+really do improve within the server's lifetime -- but nothing is written
+to disk, so it resets whenever the process restarts (e.g. Render's free
+tier spinning down after ~15 min idle, or a redeploy). That's an
+intentional tradeoff: it keeps the zero-storage / zero-cost privacy
+promise ("we never store your CV") -- feedback only ever carries the
+already-detected skill keywords and the category the user picked, never
+resume text or personal info.
+
 If you obtain a real labeled resume CSV (e.g. Kaggle's
 "UpdatedResumeDataSet.csv" with columns Category,Resume), call
 train_from_csv(path) instead of train_from_taxonomy() to train on real
 resume text -- everything else in the app stays the same.
 """
 import random
+import threading
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
@@ -47,6 +60,10 @@ class CareerClassifier:
         self.vectorizer: TfidfVectorizer | None = None
         self.model: LogisticRegression | None = None
         self.classes_: list[str] = []
+        self._texts: list[str] = []
+        self._labels: list[str] = []
+        self._feedback_count = 0
+        self._train_lock = threading.Lock()
 
     def train_from_taxonomy(self):
         texts, labels = [], []
@@ -54,12 +71,9 @@ class CareerClassifier:
             for doc in _synthetic_documents(category, data["core"], data["next"]):
                 texts.append(doc)
                 labels.append(category)
-
-        self.vectorizer = TfidfVectorizer(ngram_range=(1, 2), lowercase=True)
-        X = self.vectorizer.fit_transform(texts)
-        self.model = LogisticRegression(max_iter=2000)
-        self.model.fit(X, labels)
-        self.classes_ = list(self.model.classes_)
+        with self._train_lock:
+            self._texts, self._labels = texts, labels
+            self._fit()
         return self
 
     def train_from_csv(self, path: str, text_col: str = "Resume", label_col: str = "Category"):
@@ -74,12 +88,41 @@ class CareerClassifier:
                     texts.append(row[text_col])
                     labels.append(row[label_col])
 
-        self.vectorizer = TfidfVectorizer(ngram_range=(1, 2), lowercase=True, max_features=20000, stop_words="english")
-        X = self.vectorizer.fit_transform(texts)
-        self.model = LogisticRegression(max_iter=2000)
-        self.model.fit(X, labels)
-        self.classes_ = list(self.model.classes_)
+        with self._train_lock:
+            self._texts, self._labels = texts, labels
+            self._fit(max_features=20000, stop_words="english")
         return self
+
+    def _fit(self, **vectorizer_kwargs):
+        """Rebuild vectorizer + model from self._texts/_labels. Caller must hold _train_lock."""
+        self.vectorizer = TfidfVectorizer(ngram_range=(1, 2), lowercase=True, **vectorizer_kwargs)
+        X = self.vectorizer.fit_transform(self._texts)
+        self.model = LogisticRegression(max_iter=2000)
+        self.model.fit(X, self._labels)
+        self.classes_ = list(self.model.classes_)
+
+    def add_feedback(self, skills_text: str, correct_category: str):
+        """
+        Fold one user-confirmed (skills -> correct category) example into the
+        live training set and retrain immediately. skills_text should be the
+        already-detected skill keywords joined by spaces (analyzer.py's
+        detected_skills), NOT raw resume text -- keeps this feature aligned
+        with the "we never store your CV" promise, and matches the
+        distribution the model is trained on (see analyzer.build_career_matches
+        for why that distribution match matters).
+        """
+        if not skills_text or not skills_text.strip():
+            raise ValueError("No skills provided.")
+        if correct_category not in CAREER_SKILLS:
+            raise ValueError(f"Unknown category: {correct_category}")
+        with self._train_lock:
+            self._texts.append(skills_text.strip())
+            self._labels.append(correct_category)
+            self._feedback_count += 1
+            self._fit()
+
+    def feedback_count(self) -> int:
+        return self._feedback_count
 
     def predict_top_k(self, text: str, k: int = 3) -> list[tuple[str, float]]:
         if not self.model or not self.vectorizer:

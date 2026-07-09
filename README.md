@@ -27,22 +27,25 @@ A third tab, **Resume Builder**, lets someone upload a CV and get it back as str
 akops-resume-ai/
   backend/          FastAPI app (Python)
     app/
-      main.py        API routes: /api/analyze, /api/match, /api/parse, /api/export, /api/health
-      classifier.py   local TF-IDF + LogisticRegression career classifier
+      main.py        API routes: /api/analyze, /api/match, /api/parse, /api/export, /api/feedback, /api/categories, /api/chat, /api/health
+      classifier.py   local TF-IDF + LogisticRegression career classifier + in-memory add_feedback() continuous learning
       analyzer.py     skill detection, scoring, summary, strengths
       matcher.py      JD vs CV cosine-similarity matching
       resume_parser.py   heuristic CV -> structured sections parser
-      schemas.py      pydantic models for the editable resume JSON
+      schemas.py      pydantic models for the editable resume JSON, chat, and feedback requests
       export_pdf.py   structured resume -> polished PDF (reportlab)
       export_docx.py  structured resume -> polished Word doc (python-docx)
       skills_data.py  open skill taxonomy (25 career tracks) + skill alias/synonym map
       pdf_utils.py    PDF text extraction
-      llm_enhance.py  OPTIONAL: calls Gemini if GEMINI_API_KEY is set (see below); unused otherwise
+      gemini_client.py   shared low-level Gemini REST caller (used by both features below)
+      llm_enhance.py  OPTIONAL: Enhanced Mode summary/tips if GEMINI_API_KEY is set; unused otherwise
+      chat_assist.py  OPTIONAL: Resume Chat Assistant widget, scoped to resume/career questions only
     requirements.txt
     render.yaml       one-click Render free-tier deploy config
   frontend/          React (Vite) app, same purple/dark AKOps theme
     src/App.jsx
     src/ResumeBuilder.jsx   parse -> edit -> download UI
+    src/ChatWidget.jsx      floating bottom-left chat assistant
     src/index.css
     vercel.json
 ```
@@ -99,3 +102,17 @@ This uses `gemini-2.5-flash-lite`, which has a generous free daily quota. The ke
 **Traffic safety net:** the backend tracks its own daily usage and proactively stops calling Gemini once it's used `GEMINI_DAILY_LIMIT` requests that day (default 200, well under Google's free-tier cap, so a burst of visitors can never get your key rate-limited). Once the budget is hit, users just see "today's free AI bonus is used up" and get the regular local analysis instead — nothing breaks. Raise or lower the budget by setting `GEMINI_DAILY_LIMIT` in Render's environment variables. Note this counter lives in memory, so it resets whenever the server restarts (e.g. Render's free tier spinning down after ~15 min idle) -- it's an approximate daily budget, not a database-backed exact one, which is intentional to keep this feature free and dependency-free.
 
 **The important part for scale:** none of this affects the rest of the app. Resume Analysis, JD Matching, and the Resume Builder (parse/edit/export) have no usage ceiling at all — they're local computation, so however many people use the site, that part costs $0 and never degrades. Enhanced Mode is deliberately the only piece with a ceiling, and it fails soft.
+
+## Resume Chat Assistant (bottom-left widget)
+
+A floating 💬 button (bottom-left of the site) opens a small chat panel powered by the same free Gemini key as Enhanced Mode — but scoped strictly to resume/career/job-search questions via a system prompt (`backend/app/chat_assist.py`). Off-topic questions ("write me code", "what's the weather") are politely declined by the model itself; no keyword filter is needed to enforce this.
+
+It uses the **same `GEMINI_API_KEY`** as Enhanced Mode but a **separate daily budget**, `GEMINI_CHAT_DAILY_LIMIT` (default 300), so a busy chat widget can never starve Enhanced Mode's quota, or vice versa. Nothing sent through the chat is stored server-side — each request is stateless; the browser resends the recent conversation history with every message. If `GEMINI_API_KEY` isn't set, the widget still appears but tells visitors it isn't turned on yet.
+
+## Continuous learning for career matches (in-memory)
+
+Under "Best Career Matches," visitors can confirm 👍 or correct 👎 the top match. A correction lets them pick the right career track from a dropdown; that (skills-only, no CV text, no personal info) example is folded straight back into the TF-IDF + Logistic Regression classifier and it retrains immediately (`backend/app/classifier.py`, `add_feedback()`), typically in well under a second.
+
+This is genuine online learning — the model's predictions really do improve within the server's running lifetime — but it's **in-memory only**, so it resets whenever the process restarts (e.g. Render's free tier spinning down after ~15 min idle, or a redeploy). That's a deliberate tradeoff: Render's free tier has no persistent disk, and persisting real feedback data anywhere permanent would mean standing up an external database. Keeping it in-memory means zero new infrastructure, zero new cost, and it never touches the "we never store your CV" promise — feedback only ever carries already-detected skill keywords plus the category a visitor picked, nothing else.
+
+If you outgrow this later, the natural upgrade path is to give the backend a free external Postgres (e.g. Supabase's free tier, which doesn't auto-expire the way Render's free Postgres does) and persist the feedback rows there so learning survives restarts.

@@ -5,30 +5,23 @@ to produce a sharper, more human-written summary and improvement tips on top
 of the local analysis. Completely optional -- if no key is configured, every
 other feature in this app keeps working exactly as before, for free.
 
-This is the ONLY place in the codebase that ever calls an external AI API,
-and it never runs unless the server operator explicitly opts in by setting
-the environment variable. No key is ever accepted from or exposed to the
-browser/client.
+Uses the shared low-level caller in gemini_client.py, but owns its own daily
+budget guard (DAILY_LIMIT / GEMINI_DAILY_LIMIT) separate from chat_assist.py's,
+so a busy chat widget can never starve this feature's quota, or vice versa.
 """
-import json
 import os
 import threading
-import urllib.request
-import urllib.error
 from datetime import datetime, timezone
 
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
-GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
-_TIMEOUT_SECONDS = 20
+from . import gemini_client
 
-# gemini-2.5-flash-lite's free tier is ~1,000 requests/day at the time this was
-# written (Google can change this without notice -- check ai.google.dev/gemini-api/docs/pricing).
-# Default to well under that so a burst of traffic never actually exhausts the
-# key or gets it rate-limited by Google; the site owner can raise/lower this
-# via an env var. This counter is in-memory, so it resets whenever the server
-# restarts (e.g. Render free tier spinning down after idle) -- an approximate
-# daily budget, not a precise one, but enough to keep behavior predictable
-# under real public traffic instead of only failing after Gemini rejects calls.
+# gemini-2.5-flash-lite's free tier is roughly 1,000+ requests/day at the time
+# this was written (Google can change this without notice -- check
+# ai.google.dev/gemini-api/docs/rate-limits). Default to well under that so a
+# burst of traffic never actually exhausts the key or gets it rate-limited;
+# the site owner can raise/lower this via an env var. This counter is
+# in-memory, so it resets whenever the server restarts (e.g. Render free tier
+# spinning down after idle) -- an approximate daily budget, not a precise one.
 DAILY_LIMIT = int(os.environ.get("GEMINI_DAILY_LIMIT", "200"))
 
 _lock = threading.Lock()
@@ -37,7 +30,7 @@ _usage_count = 0
 
 
 def is_configured() -> bool:
-    return bool(os.environ.get("GEMINI_API_KEY"))
+    return gemini_client.is_configured()
 
 
 def _today() -> str:
@@ -74,37 +67,6 @@ def _record_usage():
         _usage_count += 1
 
 
-def _call_gemini(prompt: str) -> str:
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        raise RuntimeError("GEMINI_API_KEY is not set on the server.")
-
-    body = json.dumps({
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.4, "maxOutputTokens": 500},
-    }).encode("utf-8")
-
-    req = urllib.request.Request(
-        f"{GEMINI_API_URL}?key={api_key}",
-        data=body,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=_TIMEOUT_SECONDS) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        detail = e.read().decode("utf-8", errors="ignore")
-        raise RuntimeError(f"Gemini API error {e.code}: {detail[:300]}") from e
-    except urllib.error.URLError as e:
-        raise RuntimeError(f"Could not reach Gemini API: {e.reason}") from e
-
-    try:
-        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
-    except (KeyError, IndexError, TypeError) as e:
-        raise RuntimeError(f"Unexpected Gemini response shape: {data}") from e
-
-
 def enhance_analysis(resume_text: str, base_result: dict) -> dict:
     """
     Ground the LLM in our own deterministic findings (score, detected skills,
@@ -136,7 +98,7 @@ def enhance_analysis(resume_text: str, base_result: dict) -> dict:
             "It resets daily -- the local analysis above is still fully accurate in the meantime."
         )
 
-    raw = _call_gemini(prompt)
+    raw = gemini_client.call_gemini(prompt, temperature=0.4, max_output_tokens=500)
     _record_usage()
     if "---" in raw:
         summary_part, tips_part = raw.split("---", 1)
@@ -144,15 +106,15 @@ def enhance_analysis(resume_text: str, base_result: dict) -> dict:
         summary_part, tips_part = raw, ""
 
     tips = [line.strip(" .\t") for line in tips_part.strip().split("\n") if line.strip()]
-    tips = [re_strip_numbering(t) for t in tips if t]
+    tips = [_strip_numbering(t) for t in tips if t]
 
     return {
         "enhanced_summary": summary_part.strip(),
         "enhanced_tips": tips[:5],
-        "enhanced_model": GEMINI_MODEL,
+        "enhanced_model": gemini_client.GEMINI_MODEL,
     }
 
 
-def re_strip_numbering(line: str) -> str:
+def _strip_numbering(line: str) -> str:
     import re
     return re.sub(r"^\s*\d+[\.\)]\s*", "", line).strip()

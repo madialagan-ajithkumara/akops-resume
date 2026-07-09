@@ -1,4 +1,5 @@
-"""Pydantic models for the editable, structured resume used by /api/parse and /api/export."""
+"""Pydantic models for the editable, structured resume (/api/parse, /api/export),
+the chat assistant (/api/chat), and career-match feedback (/api/feedback)."""
 from typing import Optional
 from pydantic import BaseModel, Field
 
@@ -48,3 +49,13 @@ class ResumeData(BaseModel):
 class ExportRequest(BaseModel):
     resume: ResumeData
     format: str = "pdf"  # "pdf" | "docx"
+
+
+class ChatRequest(BaseModel):
+    message: str
+    history: list[dict] = Field(default_factory=list)  # [{"role": "user"|"assistant", "text": "..."}]
+
+
+class FeedbackRequest(BaseModel):
+    detected_skills: list[str]
+    correct_category: str

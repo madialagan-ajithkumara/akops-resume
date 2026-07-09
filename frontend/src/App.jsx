@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import ResumeBuilder from './ResumeBuilder'
+import ChatWidget from './ChatWidget'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -137,7 +138,59 @@ function StrengthsAndLearn({ strengths, skillsToLearn }) {
   )
 }
 
-function CareerMatches({ matches }) {
+function CareerMatchFeedback({ detectedSkills, topCategory }) {
+  const [categories, setCategories] = useState([])
+  const [state, setState] = useState('idle') // idle | correcting | sent
+  const [chosen, setChosen] = useState('')
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/categories`)
+      .then((r) => r.json())
+      .then((d) => setCategories(d.categories || []))
+      .catch(() => {})
+  }, [])
+
+  async function sendFeedback(correctCategory) {
+    try {
+      await fetch(`${API_URL}/api/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ detected_skills: detectedSkills, correct_category: correctCategory }),
+      })
+    } catch {
+      // best-effort — feedback failing silently shouldn't break the page
+    }
+    setState('sent')
+  }
+
+  if (state === 'sent') {
+    return <div className="feedback-thanks">✓ Thanks — that helps the model improve for the next person.</div>
+  }
+
+  return (
+    <div className="feedback-row">
+      {state === 'idle' && (
+        <>
+          <span className="feedback-label">Was "{topCategory}" the right top match?</span>
+          <button className="feedback-btn" onClick={() => sendFeedback(topCategory)}>👍</button>
+          <button className="feedback-btn" onClick={() => setState('correcting')}>👎</button>
+        </>
+      )}
+      {state === 'correcting' && (
+        <div className="feedback-correct-row">
+          <span className="feedback-label">What should it have been?</span>
+          <select className="feedback-select" value={chosen} onChange={(e) => setChosen(e.target.value)}>
+            <option value="">Choose a category...</option>
+            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <button className="feedback-btn picked" disabled={!chosen} onClick={() => sendFeedback(chosen)}>Submit</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CareerMatches({ matches, detectedSkills }) {
   return (
     <div className="card">
       <div className="card-title">🚀 Best Career Matches</div>
@@ -150,6 +203,9 @@ function CareerMatches({ matches }) {
           <div className="match-pct">{m.match_percent}%</div>
         </div>
       ))}
+      {matches.length > 0 && (
+        <CareerMatchFeedback detectedSkills={detectedSkills} topCategory={matches[0].title} />
+      )}
     </div>
   )
 }
@@ -334,7 +390,7 @@ export default function App() {
           <SummaryCard summary={result.summary} />
           <EnhancedCard result={result} />
           <StrengthsAndLearn strengths={result.strengths} skillsToLearn={result.skills_to_learn} />
-          <CareerMatches matches={result.career_matches} />
+          <CareerMatches matches={result.career_matches} detectedSkills={result.detected_skills} />
           <div className="reset-row">
             <button className="btn-ghost" onClick={reset}>↺ Analyze another resume</button>
           </div>
@@ -349,6 +405,8 @@ export default function App() {
         </div>
         Built with ❤ by <b>AKOps</b> · free & open, no AI subscription needed
       </div>
+
+      <ChatWidget />
     </div>
   )
 }
