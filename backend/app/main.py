@@ -34,7 +34,11 @@ def _pdf_to_text(upload: UploadFile) -> str:
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "enhanced_mode_configured": llm_enhance.is_configured()}
+    return {
+        "status": "ok",
+        "enhanced_mode_configured": llm_enhance.is_configured(),
+        "enhanced_mode_quota_remaining_today": llm_enhance.remaining_quota() if llm_enhance.is_configured() else None,
+    }
 
 
 def _maybe_enhance(result: dict, text: str, enhanced: bool) -> dict:

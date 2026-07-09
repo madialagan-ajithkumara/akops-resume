@@ -12,16 +12,66 @@ browser/client.
 """
 import json
 import os
+import threading
 import urllib.request
 import urllib.error
+from datetime import datetime, timezone
 
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 _TIMEOUT_SECONDS = 20
 
+# gemini-2.5-flash-lite's free tier is ~1,000 requests/day at the time this was
+# written (Google can change this without notice -- check ai.google.dev/gemini-api/docs/pricing).
+# Default to well under that so a burst of traffic never actually exhausts the
+# key or gets it rate-limited by Google; the site owner can raise/lower this
+# via an env var. This counter is in-memory, so it resets whenever the server
+# restarts (e.g. Render free tier spinning down after idle) -- an approximate
+# daily budget, not a precise one, but enough to keep behavior predictable
+# under real public traffic instead of only failing after Gemini rejects calls.
+DAILY_LIMIT = int(os.environ.get("GEMINI_DAILY_LIMIT", "200"))
+
+_lock = threading.Lock()
+_usage_date = None
+_usage_count = 0
+
 
 def is_configured() -> bool:
     return bool(os.environ.get("GEMINI_API_KEY"))
+
+
+def _today() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def _reset_if_new_day():
+    global _usage_date, _usage_count
+    today = _today()
+    if _usage_date != today:
+        _usage_date = today
+        _usage_count = 0
+
+
+def remaining_quota() -> int:
+    with _lock:
+        _reset_if_new_day()
+        return max(0, DAILY_LIMIT - _usage_count)
+
+
+def has_quota_remaining() -> bool:
+    return remaining_quota() > 0
+
+
+def is_available() -> bool:
+    """Configured AND still within today's free-tier safety budget."""
+    return is_configured() and has_quota_remaining()
+
+
+def _record_usage():
+    global _usage_count
+    with _lock:
+        _reset_if_new_day()
+        _usage_count += 1
 
 
 def _call_gemini(prompt: str) -> str:
@@ -80,7 +130,14 @@ def enhance_analysis(resume_text: str, base_result: dict) -> dict:
         "what's actually missing or weak in this resume."
     )
 
+    if not has_quota_remaining():
+        raise RuntimeError(
+            f"Enhanced mode has hit today's free usage budget ({DAILY_LIMIT} requests). "
+            "It resets daily -- the local analysis above is still fully accurate in the meantime."
+        )
+
     raw = _call_gemini(prompt)
+    _record_usage()
     if "---" in raw:
         summary_part, tips_part = raw.split("---", 1)
     else:
