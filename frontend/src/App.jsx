@@ -378,6 +378,31 @@ function JdMatchCard({ matchPercent, matched, missing }) {
   )
 }
 
+function JdImprovementsCard({ missing }) {
+  if (!missing || missing.length === 0) {
+    return (
+      <div className="card">
+        <div className="card-title"><Icon.alert size={15} />How to Improve for This JD</div>
+        <div className="summary-text">Great coverage — no missing skills detected from this job description.</div>
+      </div>
+    )
+  }
+  return (
+    <div className="card">
+      <div className="card-title"><Icon.alert size={15} />How to Improve for This JD</div>
+      {missing.map((skill) => (
+        <div className="info-item" key={skill}>
+          <div className="info-item-icon warn"><Icon.alert size={13} /></div>
+          <div>
+            <div className="info-item-title">Add {skill}</div>
+            <div className="info-item-desc">This skill appears in the job description but wasn't found on your resume.</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function FileManageAndReport({ file, analyzedAt, onReplace, onReanalyze, reanalyzing, onDownload, onSave, onShare, downloading }) {
   return (
     <div className="card" style={{ padding: 0 }}>
@@ -563,12 +588,31 @@ export default function App() {
 
         {mode === 'builder' && !result && <ResumeBuilder />}
 
-        {result && (
+        {result && mode === 'match' && (
+          <div className="section">
+            <JdMatchCard matchPercent={result.match_percent} matched={result.matched_skills} missing={result.missing_skills} />
+            <JdImprovementsCard missing={result.missing_skills} />
+            <EnhancedCard result={result} />
+            <FileManageAndReport
+              file={file}
+              analyzedAt={analyzedAt}
+              onReplace={reset}
+              onReanalyze={handleSubmit}
+              reanalyzing={loading}
+              onDownload={downloadReport}
+              onSave={downloadReport}
+              onShare={shareReport}
+              downloading={downloading}
+            />
+            <div className="reset-row">
+              <button className="btn-ghost" onClick={reset}><Icon.refresh size={14} />Check another resume</button>
+            </div>
+          </div>
+        )}
+
+        {result && mode === 'analysis' && (
           <div className="section">
             <ScorePanel result={result} />
-            {mode === 'match' && (
-              <JdMatchCard matchPercent={result.match_percent} matched={result.matched_skills} missing={result.missing_skills} />
-            )}
             <SummaryPanel result={result} analyzedAt={analyzedAt} />
             <EnhancedCard result={result} />
             <StrengthsAndImprove strengths={result.strengths} suggestions={result.improvement_suggestions || []} />
