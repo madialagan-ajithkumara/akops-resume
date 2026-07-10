@@ -344,6 +344,27 @@ textarea.jd-input:focus { outline: none; border-color: var(--emerald); }
 
 .reset-row { display: flex; justify-content: center; margin-top: 6px; margin-bottom: 16px; }
 
+/* ================= Feedback survey card ================= */
+.feedback-card { margin-top: 4px; }
+.feedback-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.feedback-dismiss {
+  border: none; background: transparent; color: var(--text-faint); cursor: pointer;
+  padding: 4px; border-radius: 6px; display: inline-flex; align-items: center;
+}
+.feedback-dismiss:hover { color: var(--text-muted); background: var(--card-hover); }
+.feedback-q { margin-bottom: 14px; }
+.feedback-q-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+.feedback-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.feedback-opt {
+  border: 1px solid var(--border); background: var(--bg-raised); color: var(--text-muted);
+  font-size: 12.5px; font-weight: 600; padding: 7px 13px; border-radius: 999px;
+  cursor: pointer; transition: all .15s ease;
+}
+.feedback-opt:hover { border-color: var(--emerald); color: var(--text); }
+.feedback-opt.selected { background: var(--emerald-soft); border-color: var(--emerald); color: var(--emerald-light); }
+.feedback-thanks { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--emerald-light); }
+
+
 .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
   background: var(--card); border: 1px solid var(--border-strong); color: var(--text);

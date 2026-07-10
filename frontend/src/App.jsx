@@ -430,6 +430,123 @@ function FileManageAndReport({ file, analyzedAt, onReplace, onReanalyze, reanaly
   )
 }
 
+// ---- Quick feedback survey (posts to a Google Form, no backend/database needed) ----
+// Setup: create a Google Form with these 3 questions, grab its formResponse URL and each
+// question's entry.XXXXXX ID (right-click a form field > Inspect, or open the form's
+// pre-filled-link generator), then paste them in below.
+const FEEDBACK_FORM_ACTION = 'https://docs.google.com/forms/d/e/1FAIpQLSftTW79XZWbaqt_2i2AZGW7tW1Dm3gD8NNC1kzeLCIIym5XqA/formResponse'
+const FEEDBACK_ENTRY_IDS = {
+  accurate: 'entry.1053407393',
+  recommend: 'entry.16786293',
+  nextFeature: 'entry.1499971786',
+}
+const FEEDBACK_STORAGE_KEY = 'akops_feedback_done'
+
+function FeedbackSurvey() {
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem(FEEDBACK_STORAGE_KEY) === '1' } catch { return false }
+  })
+  const [answers, setAnswers] = useState({ accurate: '', recommend: '', nextFeature: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [done, setDone] = useState(false)
+
+  if (dismissed) return null
+
+  function pick(key, value) {
+    setAnswers((a) => ({ ...a, [key]: value }))
+  }
+
+  function persistDismiss() {
+    try { localStorage.setItem(FEEDBACK_STORAGE_KEY, '1') } catch {}
+    setDismissed(true)
+  }
+
+  async function submit() {
+    setSubmitting(true)
+    try {
+      const body = new URLSearchParams()
+      body.append(FEEDBACK_ENTRY_IDS.accurate, answers.accurate)
+      body.append(FEEDBACK_ENTRY_IDS.recommend, answers.recommend)
+      body.append(FEEDBACK_ENTRY_IDS.nextFeature, answers.nextFeature)
+      await fetch(FEEDBACK_FORM_ACTION, { method: 'POST', mode: 'no-cors', body })
+    } catch {
+      // fire-and-forget: even if this fails, don't block or alarm the user
+    } finally {
+      setSubmitting(false)
+      setDone(true)
+      try { localStorage.setItem(FEEDBACK_STORAGE_KEY, '1') } catch {}
+    }
+  }
+
+  const allAnswered = answers.accurate && answers.recommend && answers.nextFeature
+
+  if (done) {
+    return (
+      <div className="card feedback-card">
+        <div className="feedback-thanks"><Icon.check size={15} />Thanks — that helps shape what's next.</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="card feedback-card">
+      <div className="feedback-head">
+        <div className="card-title" style={{ marginBottom: 0 }}><Icon.sparkle size={15} />Quick feedback (15 seconds)</div>
+        <button className="feedback-dismiss" onClick={persistDismiss} aria-label="Dismiss feedback survey"><Icon.close size={14} /></button>
+      </div>
+
+      <div className="feedback-q">
+        <div className="feedback-q-title">Was the result accurate?</div>
+        <div className="feedback-options">
+          {['Yes', 'Partially', 'No'].map((opt) => (
+            <button
+              key={opt}
+              className={`feedback-opt ${answers.accurate === opt ? 'selected' : ''}`}
+              onClick={() => pick('accurate', opt)}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="feedback-q">
+        <div className="feedback-q-title">Would you recommend this tool?</div>
+        <div className="feedback-options">
+          {['Yes', 'No'].map((opt) => (
+            <button
+              key={opt}
+              className={`feedback-opt ${answers.recommend === opt ? 'selected' : ''}`}
+              onClick={() => pick('recommend', opt)}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="feedback-q">
+        <div className="feedback-q-title">What feature would you like next?</div>
+        <div className="feedback-options">
+          {['AI Career Coach', 'DevOps Roadmap', 'Cloud Skills Assessment', 'Resume Builder Improvements'].map((opt) => (
+            <button
+              key={opt}
+              className={`feedback-opt ${answers.nextFeature === opt ? 'selected' : ''}`}
+              onClick={() => pick('nextFeature', opt)}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button className="btn-primary inline" disabled={!allAnswered || submitting} onClick={submit}>
+        {submitting ? (<><span className="spinner" />Sending...</>) : 'Submit feedback'}
+      </button>
+    </div>
+  )
+}
+
 function Toast({ message }) {
   if (!message) return null
   return <div className="toast">{message}</div>
@@ -604,6 +721,7 @@ export default function App() {
               onShare={shareReport}
               downloading={downloading}
             />
+            <FeedbackSurvey />
             <div className="reset-row">
               <button className="btn-ghost" onClick={reset}><Icon.refresh size={14} />Check another resume</button>
             </div>
@@ -628,6 +746,7 @@ export default function App() {
               onShare={shareReport}
               downloading={downloading}
             />
+            <FeedbackSurvey />
             <div className="reset-row">
               <button className="btn-ghost" onClick={reset}><Icon.refresh size={14} />Analyze another resume</button>
             </div>
